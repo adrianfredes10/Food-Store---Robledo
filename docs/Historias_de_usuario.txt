@@ -1,0 +1,71 @@
+FoodStore — Historias de usuario y criterios de aceptación
+===========================================================
+
+US-001: Como cliente quiero registrarme e iniciar sesión
+--------------------------------------------------------
+Criterios de aceptación:
+  - Registro y login devuelven JWT de acceso.
+  - Rol CLIENT asignado automáticamente al registrarse.
+  - Refresh token emitido y renovable vía endpoint dedicado.
+  - Logout invalida sesión según política implementada.
+
+US-002: Como cliente quiero ver el catálogo de productos
+---------------------------------------------------------
+Criterios de aceptación:
+  - Listado de productos con datos de precio y categoría.
+  - Filtro por categoría cuando aplica en la API/UI.
+  - Búsqueda o filtrado por nombre según endpoints disponibles.
+  - Visualización clara de precio unitario.
+
+US-003: Como cliente quiero agregar productos al carrito
+---------------------------------------------------------
+Criterios de aceptación:
+  - Agregar/quitar ítems con cantidad.
+  - Personalización de ingredientes (excluir / opciones) persistida
+    en el estado del carrito (Zustand + persistencia local).
+  - El carrito refleja subtotales coherentes con el backend al crear pedido.
+
+US-004: Como cliente quiero crear un pedido
+---------------------------------------------
+Criterios de aceptación:
+  - Snapshot de precios y datos relevantes al confirmar el pedido.
+  - Validación de stock o reglas de negocio en el servicio de pedidos.
+  - Costo de envío fijo de $50 (ARS) aplicado según modelo actual.
+
+US-005: Como cliente quiero pagar con Mercado Pago
+---------------------------------------------------
+Criterios de aceptación:
+  - Flujo de checkout (preferencia o brick según implementación).
+  - Webhook / IPN procesado en backend cuando no está en mock.
+  - Con pago aprobado, transición automática del pedido de
+    PENDIENTE a CONFIRMADO cuando corresponde al flujo implementado.
+
+US-006: Como cliente quiero ver el estado de mis pedidos
+---------------------------------------------------------
+Criterios de aceptación:
+  - Listado de pedidos del usuario autenticado.
+  - Detalle con historial de cambios de estado.
+  - Refresco periódico en detalle (polling ~30 s) mientras el pedido
+    no esté en estado terminal (ENTREGADO o CANCELADO).
+
+US-007: Como admin (o rol de stock) quiero gestionar el catálogo
+----------------------------------------------------------------
+Criterios de aceptación:
+  - CRUD de categorías.
+  - CRUD de ingredientes.
+  - CRUD de productos vinculados a categoría e ingredientes.
+
+US-008: Como admin (o rol de pedidos) quiero gestionar los pedidos
+-------------------------------------------------------------------
+Criterios de aceptación:
+  - Listado y detalle de pedidos.
+  - Avance de estados según FSM permitida.
+  - Cancelación u operaciones administrativas según reglas de negocio.
+  - Visualización de historial de estados.
+
+US-009: Como cliente quiero gestionar mis direcciones de entrega
+-----------------------------------------------------------------
+Criterios de aceptación:
+  - CRUD de direcciones asociadas al usuario.
+  - Posibilidad de marcar una dirección como principal.
+  - Uso de dirección en el flujo de checkout / pedido según API.

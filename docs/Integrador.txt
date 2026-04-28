@@ -1,0 +1,52 @@
+FoodStore — Especificación técnica (integrador)
+===============================================
+
+ARQUITECTURA BACKEND
+--------------------
+- Patrón por capas: Router → Service → Unit of Work → Repository → Model.
+- Módulos bajo backend/app/modules/ con router, service, schemas,
+  repository y modelos SQLModel según el dominio.
+- Unit of Work (app/core/uow) para transacciones atómicas y commits
+  coordinados entre repositorios.
+- Autenticación JWT con algoritmo HS256 (python-jose + secret configurable).
+- Contraseñas con bcrypt (passlib).
+- FSM de pedidos: PENDIENTE → CONFIRMADO → EN_PREP → EN_CAMINO →
+  ENTREGADO o CANCELADO (con reglas de transición en servicio).
+
+ARQUITECTURA FRONTEND
+---------------------
+- Organización tipo feature-sliced: app/ (router, providers),
+  pages/ (rutas), features/ (hooks y UI por dominio),
+  shared/ (api, stores, types, ui).
+- TanStack Query v5 para datos del servidor (queries, mutations,
+  invalidación de caché).
+- Zustand para estado de cliente: auth, carrito, pago y UI
+  (cuatro stores principales).
+- React Router con rutas dinámicas (ej. pedido por id).
+- Axios con interceptores; reintento de refresh ante 401 cuando aplica.
+
+MODELO DE DATOS (RESUMEN)
+-------------------------
+- Categoria: jerarquía opcional (self-reference) y relación 1:N con Producto.
+- Producto: relación N:N con Ingrediente vía tabla de asociación
+  (ProductoIngrediente / equivalente en modelo).
+- Pedido: FSM, totales, snapshot de precio, costo de envío, vínculo a
+  dirección y metadatos de dirección cuando aplica.
+- Pago: vínculo a pedido; idempotencia con idempotency_key en creación
+  de preferencias / operaciones sensibles.
+
+API
+---
+- Prefijo base: /api/v1
+- Autenticación: Bearer JWT en cabecera Authorization.
+- Contratos REST documentados para la materia en artefacto OpenAPI:
+  openspec/specs/foodstore-openapi.json (exportación / referencia
+  alineada con los ~31 endpoints del sistema).
+
+CONFIGURACIÓN Y ENTORNO
+------------------------
+- Variables sensibles en backend/.env (no versionadas); plantilla en
+  backend/.env.example.
+- CORS configurable hacia el origen del frontend (Vite en 5173).
+- PostgreSQL en entrega; SQLite opcional para desarrollo rápido
+  según README y bootstrap.

@@ -1,0 +1,41 @@
+FoodStore — Descripción del sistema
+=====================================
+
+QUÉ HACE EL SISTEMA
+--------------------
+FoodStore es un e-commerce de comida gourmet: catálogo de productos
+personalizables, carrito, pedidos con máquina de estados, pagos online
+(vía Mercado Pago o mock en desarrollo) y direcciones de entrega.
+
+ACTORES (ROLES)
+---------------
+- CLIENT: cliente final; compra, paga y sigue sus pedidos.
+- ADMIN: administración; acceso amplio al panel y catálogo.
+- STOCK: gestión de productos, categorías e ingredientes.
+- PEDIDOS: seguimiento y cambio de estados de pedidos.
+
+STACK TECNOLÓGICO
+-----------------
+Backend:
+  FastAPI, SQLModel, PostgreSQL (Alembic para migraciones),
+  JWT (HS256), bcrypt, Unit of Work, repositorios por módulo.
+
+Frontend:
+  React 18, TypeScript (strict), Vite, TanStack Query v5,
+  Zustand, React Router, Axios (refresh en 401), Tailwind CSS.
+
+MÓDULOS PRINCIPALES
+-------------------
+- Auth: registro, login, refresh y logout con JWT.
+- Categorías, Ingredientes, Productos: catálogo y personalización.
+- Pedidos: creación, FSM de estados, historial, listados cliente/admin.
+- Pagos: integración Mercado Pago (mock opcional), webhooks/IPN.
+- Direcciones: CRUD de direcciones de entrega del cliente.
+- Admin: APIs y UI para catálogo y gestión de pedidos.
+
+OBJETIVO DEL SISTEMA
+--------------------
+Permitir que los clientes descubran productos, los personalicen,
+armen un pedido, paguen en línea y reciban seguimiento del estado.
+Los perfiles administrativos gestionan el catálogo y el ciclo de
+vida del pedido hasta entrega o cancelación.

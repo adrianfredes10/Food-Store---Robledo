@@ -1,0 +1,57 @@
+# Raíz FoodStore
+.DS_Store
+Thumbs.db
+*.log
+
+# Backend
+backend/.env
+# Groq (GROQ_API_KEY / GROQ_MODEL): solo en .env local o archivos ignorados; nunca en el repo
+backend/.env.groq
+backend/.env.local
+*.groq.env
+backend/.venv/
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/.pytest_cache/
+backend/*.egg-info/
+backend/.eggs/
+backend/dist/
+backend/build/
+backend/*.db
+backend/_alembic_test.db
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/*.local
+
+# ------------------------------------
+# Gestión de Software — SDD artifacts
+# Estos archivos SÍ se versionan
+# ------------------------------------
+# openspec/ → versionado (Gestión)
+# AGENTS.md → versionado (Gestión)
+# .cursor/  → versionado (Gestión)
+
+# Solo ignorar secretos y temporales:
+.cursor/rules/
+*.local
+.env
+.env.*
+!.env.example
+
+.cursorrules
+.cursorignore
+SDD.md
+CLAUDE.md
+GEMINI.md
+copilot-instructions.md
+.aider*
+.continue/
+
+# Archivos de contexto / specs sueltos (generados o de workflow)
+*.context.md
+*.spec.md
