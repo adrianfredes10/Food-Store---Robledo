@@ -14,6 +14,7 @@ backend/venv/
 backend/__pycache__/
 backend/**/__pycache__/
 backend/.pytest_cache/
+backend/.coverage
 backend/*.egg-info/
 backend/.eggs/
 backend/dist/
