@@ -10,13 +10,20 @@ class CategoriaNoEncontradaError(ErrorCategoria):
 
 class CategoriaConProductosActivosError(ErrorCategoria):
     def __init__(self, categoria_id: int) -> None:
-        super().__init__(f"La categoría {categoria_id} tiene productos activos asociados")
+        super().__init__(
+            "No se puede eliminar esta categoría: todavía tiene productos en el catálogo "
+            "(incluye productos pausados). Eliminá esos productos desde Admin → Productos "
+            "o asignálos manualmente a otra categoría; no se mueven solos."
+        )
         self.categoria_id = categoria_id
 
 
 class CategoriaConHijosActivosError(ErrorCategoria):
     def __init__(self, categoria_id: int) -> None:
-        super().__init__(f"La categoría {categoria_id} tiene subcategorías activas")
+        super().__init__(
+            "No se puede eliminar esta categoría: tiene subcategorías. "
+            "Eliminá primero las subcategorías (o los productos que bloqueen su eliminación)."
+        )
         self.categoria_id = categoria_id
 
 

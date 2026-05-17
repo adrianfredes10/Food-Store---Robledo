@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 
 import { adminTransicionPedido, getAdminPedido, getAdminPedidos } from "@/shared/api/endpoints/admin";
+import { invalidatePedidosEverywhere } from "@/shared/lib/queryCacheSync";
 
 export function useAdminPedidosList(page: number) {
   // cargo los pedidos del back
@@ -24,12 +25,9 @@ export function useAdminPedidoTransicion() {
   return useMutation({
     mutationFn: ({ pedidoId, estado }: { pedidoId: number; estado: string }) =>
       adminTransicionPedido(pedidoId, estado),
-    onSuccess: (_data, vars) => {
+    onSuccess: () => {
       toast.success("Estado actualizado");
-      // esto recarga la lista despues de guardar
-      void qc.invalidateQueries({ queryKey: ["admin", "pedido", vars.pedidoId] });
-      void qc.invalidateQueries({ queryKey: ["admin", "pedidos"] });
-      void qc.invalidateQueries({ queryKey: ["admin", "dashboard"] });
+      void invalidatePedidosEverywhere(qc);
     },
     onError: () => toast.error("Transición no permitida"),
   });

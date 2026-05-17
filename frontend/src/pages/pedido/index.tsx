@@ -214,14 +214,25 @@ export function PedidoPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                     <section className="rounded-2xl border border-border bg-bg-secondary p-6 shadow-sm">
                         <h3 className="mb-4 text-xs font-bold uppercase tracking-widest text-muted flex items-center gap-2">
-                            <MapPin size={16} /> Entrega
+                            <MapPin size={16} /> {pedido.tipo_servicio === "RETIRO_EN_LOCAL" ? "En el local" : "Entrega"}
                         </h3>
-                        <p className="font-bold text-primary mb-1">
-                            {pedido.dir_alias ?? "Dirección de entrega"}
-                        </p>
-                        <p className="text-sm text-muted leading-relaxed">
-                            {pedido.dir_linea1 ?? "—"}
-                        </p>
+                        {pedido.tipo_servicio === "RETIRO_EN_LOCAL" ? (
+                          <>
+                            <p className="font-bold text-primary mb-1">Consumo en el salón</p>
+                            <p className="text-sm text-muted leading-relaxed">
+                              Mesa {pedido.numero_mesa ?? "—"}
+                            </p>
+                          </>
+                        ) : (
+                          <>
+                            <p className="font-bold text-primary mb-1">
+                              {pedido.dir_alias ?? "Dirección de entrega"}
+                            </p>
+                            <p className="text-sm text-muted leading-relaxed">
+                              {pedido.dir_linea1 ?? "—"}
+                            </p>
+                          </>
+                        )}
                     </section>
 
                     <section className="rounded-2xl border border-border bg-bg-secondary p-6 shadow-sm">

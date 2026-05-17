@@ -16,12 +16,30 @@
     --color-bg: #ffffff;
     --color-bg-secondary: #f8fafc;
     --color-bg-tertiary: #f1f5f9;
+
+    /* Admin panel chrome — cool slate + accent, restrained contrast */
+    --admin-shell: #eef2f6;
+    --admin-overlay: rgb(15 23 42 / 0.5);
+    --admin-sidebar-bg: #0b1220;
+    --admin-sidebar-border: rgb(148 163 184 / 0.14);
+    --admin-sidebar-fg: #f1f5f9;
+    --admin-sidebar-muted: rgb(241 245 249 / 0.52);
+    --admin-sidebar-highlight: rgb(249 115 22 / 0.14);
+    --admin-sidebar-subtle: rgb(248 250 252 / 0.06);
+    --admin-sidebar-brand: #fb923c;
+    --admin-topbar-bg: rgb(255 255 255 / 0.9);
+    --admin-topbar-border: rgb(100 116 139 / 0.2);
   }
 
   html {
-    scroll-behavior: smooth;
     @apply text-[14px] md:text-[16px];
     overflow-x: clip;
+  }
+
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
   }
 
   body {
@@ -48,7 +66,15 @@
   }
 
   .admin-sidebar {
-    @apply bg-slate-950 text-white min-h-screen sticky top-0 border-r border-white/10;
+    @apply min-h-screen sticky top-0 border-r text-admin-sidebar-fg;
+    background-color: var(--admin-sidebar-bg);
+    border-color: var(--admin-sidebar-border);
+  }
+
+  .admin-topbar {
+    @apply border-b backdrop-blur-md;
+    background-color: var(--admin-topbar-bg);
+    border-color: var(--admin-topbar-border);
   }
 }
 
@@ -60,4 +86,12 @@
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }

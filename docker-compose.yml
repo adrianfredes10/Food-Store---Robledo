@@ -1,0 +1,71 @@
+# FoodStore — desarrollo solo con Docker, cambios en vivo (sin rebuild en cada edit).
+#
+# Primera vez o si cambiás dependencias (package-lock / Dockerfile):
+#   docker compose up --build
+# Después, día a día:
+#   docker compose up
+# Guardás en el IDE → API reinicia sola (--reload) y Vite hace HMR (polling en Docker).
+#
+# Front: http://localhost:5173  |  API: http://127.0.0.1:8008  |  Postgres host: localhost:5433
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: foodstore
+      POSTGRES_PASSWORD: foodstore
+      POSTGRES_DB: foodstore
+    ports:
+      - "5433:5432"
+    volumes:
+      - foodstore_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U foodstore -d foodstore"]
+      interval: 3s
+      timeout: 5s
+      retries: 15
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8008:8008"
+    volumes:
+      - ./backend:/app
+    environment:
+      DATABASE_URL: postgresql+psycopg2://foodstore:foodstore@postgres:5432/foodstore
+      JWT_SECRET_KEY: docker-dev-cambiar-en-produccion-minimo-32-caracteres-seguros
+      JWT_ALGORITHM: HS256
+      CORS_ORIGINS: http://127.0.0.1:5173,http://localhost:5173,http://127.0.0.1:8008,http://localhost:8008
+      MERCADOPAGO_MOCK: "true"
+      PUBLIC_APP_URL: http://127.0.0.1:8008
+      # Login limita por IP; cada intento cuenta (incluye éxitos). Sube o pon DISABLE_LOGIN_RATE_LIMIT=1 solo en dev.
+      LOGIN_RATE_LIMIT: "120 per 15 minutes"
+      UVICORN_RELOAD: "1"
+      WATCHFILES_FORCE_POLLING: "true"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - foodstore_web_nm:/app/node_modules
+    environment:
+      VITE_API_BASE_URL: http://127.0.0.1:8008
+      DOCKER_DEV: "1"
+      CHOKIDAR_USEPOLLING: "true"
+    command: >
+      sh -c "if [ ! -f node_modules/.bin/vite ]; then npm ci; fi && npm run dev -- --host 0.0.0.0 --port 5173"
+    depends_on:
+      - api
+
+volumes:
+  foodstore_pgdata:
+  foodstore_web_nm:

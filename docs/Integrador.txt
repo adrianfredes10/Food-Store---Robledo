@@ -30,8 +30,11 @@ MODELO DE DATOS (RESUMEN)
 - Categoria: jerarquía opcional (self-reference) y relación 1:N con Producto.
 - Producto: relación N:N con Ingrediente vía tabla de asociación
   (ProductoIngrediente / equivalente en modelo).
-- Pedido: FSM, totales, snapshot de precio, costo de envío, vínculo a
-  dirección y metadatos de dirección cuando aplica.
+- Pedido: FSM, totales, snapshot de precio, costo de envío según tipo de
+  servicio (delivery vs retiro en local), número de mesa en salón,
+  vínculo a dirección cuando aplica.
+- Mesa: catálogo físico del local (ABM admin), ocupación alineada a
+  pedidos RETIRO_EN_LOCAL; endpoint cliente para mesas disponibles.
 - Pago: vínculo a pedido; idempotencia con idempotency_key en creación
   de preferencias / operaciones sensibles.
 
@@ -50,3 +53,5 @@ CONFIGURACIÓN Y ENTORNO
 - CORS configurable hacia el origen del frontend (Vite en 5173).
 - PostgreSQL en entrega; SQLite opcional para desarrollo rápido
   según README y bootstrap.
+- Desarrollo con contenedores: docker-compose en la raíz del monorepo;
+  guía operativa en DOCKER.md (Postgres, API con Alembic al iniciar, Vite).

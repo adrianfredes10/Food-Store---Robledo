@@ -6,6 +6,7 @@ import {
   type IngredientePatchBody,
   type IngredienteRead,
 } from "@/shared/api/endpoints/ingredientes";
+import { invalidateAfterCatalogMutate } from "@/shared/lib/queryCacheSync";
 
 const ADMIN_INGREDIENTES_TODOS_KEY = ["admin-ingredientes-todas"] as const;
 
@@ -57,9 +58,7 @@ export function useCrearIngrediente() {
   return useMutation({
     mutationFn: (data: IngredienteCreateBody) => ingredientesApi.crear(data),
     onSuccess: () => {
-      // esto recarga la lista despues de guardar
-      void qc.invalidateQueries({ queryKey: ["ingredientes"] });
-      void qc.invalidateQueries({ queryKey: ADMIN_INGREDIENTES_TODOS_KEY });
+      void invalidateAfterCatalogMutate(qc);
     },
   });
 }
@@ -70,8 +69,7 @@ export function useActualizarIngrediente() {
     mutationFn: ({ id, data }: { id: number; data: IngredientePatchBody }) =>
       ingredientesApi.actualizar(id, data),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["ingredientes"] });
-      void qc.invalidateQueries({ queryKey: ADMIN_INGREDIENTES_TODOS_KEY });
+      void invalidateAfterCatalogMutate(qc);
     },
   });
 }
@@ -81,8 +79,7 @@ export function useEliminarIngrediente() {
   return useMutation({
     mutationFn: (id: number) => ingredientesApi.eliminar(id),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["ingredientes"] });
-      void qc.invalidateQueries({ queryKey: ADMIN_INGREDIENTES_TODOS_KEY });
+      void invalidateAfterCatalogMutate(qc);
     },
   });
 }

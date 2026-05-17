@@ -62,6 +62,54 @@ class FormaPagoNoValidaError(ErrorDominioPedido):
         self.codigo = codigo
 
 
+class DireccionEntregaRequeridaError(ErrorDominioPedido):
+    """Pedido en modalidad delivery sin dirección."""
+
+    def __init__(self) -> None:
+        super().__init__("La dirección de entrega es obligatoria para pedidos con envío a domicilio")
+
+
+class DireccionNoAplicaRetiroLocalError(ErrorDominioPedido):
+    def __init__(self) -> None:
+        super().__init__("No debe indicarse dirección de entrega para pedidos a consumir en el local")
+
+
+class NumeroMesaRequeridoError(ErrorDominioPedido):
+    def __init__(self) -> None:
+        super().__init__("Debe indicarse el número de mesa para pedidos en el local")
+
+
+class NumeroMesaNoAplicaDeliveryError(ErrorDominioPedido):
+    def __init__(self) -> None:
+        super().__init__("El número de mesa sólo aplica para pedidos en el local")
+
+
+class NumeroMesaFueraDeRangoError(ErrorDominioPedido):
+    def __init__(self, mesa: int) -> None:
+        super().__init__(f"Número de mesa inválido: {mesa} (debe estar entre 1 y 999)")
+        self.mesa = mesa
+
+
+class MesaNoHabilitadaParaPedidoError(ErrorDominioPedido):
+    """La mesa no está en el catálogo del salón o está desactivada."""
+
+    def __init__(self, numero: int) -> None:
+        super().__init__(
+            f"La mesa {numero} no está disponible para elegir. Seleccioná una de las mesas libres que figuran en la lista.",
+        )
+        self.numero = numero
+
+
+class MesaOcupadaParaPedidoError(ErrorDominioPedido):
+    """Otro pedido en curso ya tiene esa mesa."""
+
+    def __init__(self, numero: int) -> None:
+        super().__init__(
+            f"La mesa {numero} acaba de ocuparse. Elegí otra mesa libre.",
+        )
+        self.numero = numero
+
+
 class PedidoHistorialDesincronizadoError(ErrorDominioPedido):
     """El último registro de historial no refleja el estado actual del pedido."""
 

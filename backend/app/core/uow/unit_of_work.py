@@ -7,6 +7,7 @@ from app.modules.pedidos.historial_estado_pedido_repository import HistorialEsta
 from app.modules.pedidos.repository import PedidoRepository
 from app.modules.categorias.repository import CategoriaRepository
 from app.modules.ingredientes.repository import IngredienteRepository
+from app.modules.mesas.repository import MesaRepository
 from app.modules.productos.repository import (
     ProductoIngredienteRepository,
     ProductoRepository,
@@ -40,6 +41,7 @@ class UnitOfWork:
         "_repo_pagos",
         "_repo_direcciones",
         "_repo_refreshtokens",
+        "_repo_mesas",
     )
 
     def __init__(self, session: Session) -> None:
@@ -55,6 +57,7 @@ class UnitOfWork:
         self._repo_pagos: PagoRepository | None = None
         self._repo_direcciones: DireccionEntregaRepository | None = None
         self._repo_refreshtokens: RefreshTokenRepository | None = None
+        self._repo_mesas: MesaRepository | None = None
 
     @property
     def session(self) -> Session:
@@ -125,6 +128,12 @@ class UnitOfWork:
         if self._repo_refreshtokens is None:
             self._repo_refreshtokens = RefreshTokenRepository(self._session)
         return self._repo_refreshtokens
+
+    @property
+    def mesas(self) -> MesaRepository:
+        if self._repo_mesas is None:
+            self._repo_mesas = MesaRepository(self._session)
+        return self._repo_mesas
 
     def commit(self) -> None:
         self._session.commit()

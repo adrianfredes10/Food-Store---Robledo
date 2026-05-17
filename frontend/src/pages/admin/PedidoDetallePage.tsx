@@ -49,7 +49,7 @@ export function AdminPedidoDetallePage() {
   }
 
   return (
-    <div className="min-w-0 space-y-6 pb-16 sm:space-y-8 sm:pb-20">
+    <div className="min-w-0 max-w-full max-md:overflow-x-clip space-y-6 pb-16 sm:space-y-8 sm:pb-20 md:overflow-x-visible">
       <header className="flex flex-col gap-4 sm:gap-6 md:flex-row md:items-center md:justify-between">
         <Link to="/admin/pedidos" className="group inline-flex items-center gap-3 text-xs font-bold uppercase tracking-widest text-muted transition-all hover:text-primary touch-manipulation">
           <MoveLeft size={16} className="transition-transform group-hover:-translate-x-1" />
@@ -71,6 +71,46 @@ export function AdminPedidoDetallePage() {
             <h2 className="text-xs font-bold text-muted uppercase tracking-widest font-outfit mb-6 pb-4 border-b border-border">Gestión de Orden</h2>
             
             <div className="space-y-6 mb-8">
+                <div className="rounded-xl border border-border bg-bg-secondary p-4 text-sm space-y-4">
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-widest text-muted mb-2">Cliente</p>
+                    <p className="font-bold text-primary">{data.cliente_nombre?.trim() || `Usuario #${data.usuario_id}`}</p>
+                    {data.cliente_email?.trim() ? (
+                      <p className="mt-1 text-xs font-bold text-muted break-all">{data.cliente_email}</p>
+                    ) : null}
+                  </div>
+                  <div className="border-t border-border pt-4">
+                    <p className="text-xs font-bold uppercase tracking-widest text-muted mb-2">Modalidad</p>
+                    <p className="font-bold text-primary">
+                      {data.tipo_servicio === "RETIRO_EN_LOCAL" ? "Retiro en local (mesa en sala)" : "Delivery"}
+                    </p>
+                  </div>
+                  <div className="border-t border-border pt-4">
+                    <p className="text-xs font-bold uppercase tracking-widest text-muted mb-2">Mesa</p>
+                    <p className="font-outfit text-lg font-black text-primary">
+                      {data.tipo_servicio === "RETIRO_EN_LOCAL"
+                        ? (data.numero_mesa != null ? String(data.numero_mesa) : "—")
+                        : "—"}
+                    </p>
+                    {data.tipo_servicio !== "RETIRO_EN_LOCAL" && (
+                      <p className="mt-2 text-xs text-muted font-bold">Solo aplica a pedidos en el local.</p>
+                    )}
+                  </div>
+                  {data.tipo_servicio !== "RETIRO_EN_LOCAL" && (
+                    <div className="space-y-1 border-t border-border pt-4 text-xs text-muted">
+                      <p className="text-xs font-bold uppercase tracking-widest text-muted mb-2">Dirección de entrega (delivery)</p>
+                      <p className="font-bold text-primary text-sm">
+                        {data.dir_alias?.trim() || "Dirección de entrega"}
+                      </p>
+                      <p className="leading-relaxed">
+                        {[data.dir_linea1, data.dir_ciudad, data.dir_provincia, data.dir_cp]
+                          .map((s) => (typeof s === "string" ? s.trim() : ""))
+                          .filter(Boolean)
+                          .join(" · ") || "Sin datos de dirección en el pedido (snapshot vacío)."}
+                      </p>
+                    </div>
+                  )}
+                </div>
                 <div className="flex flex-col gap-2 text-muted sm:flex-row sm:items-center sm:justify-between bg-bg-secondary p-6 rounded-xl border border-border">
                     <span className="font-bold text-xs uppercase tracking-widest">Total Abonado</span>
                     <span className="break-words font-outfit text-xl font-black tracking-tighter text-primary sm:text-3xl">

@@ -10,6 +10,7 @@ import {
   type ProductoCreateBody,
   type ProductoPatchBody,
 } from "@/shared/api/endpoints/productos";
+import { invalidateAfterCatalogMutate } from "@/shared/lib/queryCacheSync";
 
 export function useActualizarProducto() {
   const qc = useQueryClient();
@@ -17,8 +18,7 @@ export function useActualizarProducto() {
     mutationFn: ({ id, data }: { id: number; data: ProductoPatchBody }) =>
       patchProducto(id, data),
     onSuccess: () => {
-      // esto recarga la lista despues de guardar
-      void qc.invalidateQueries({ queryKey: ["productos"] });
+      void invalidateAfterCatalogMutate(qc);
     },
   });
 }
@@ -33,8 +33,7 @@ export function useAdminProductoMutations() {
       toast.success(
         "Producto creado. Si usás imagen automática (Groq), puede tardar unos segundos en verse: recargamos el catálogo automáticamente.",
       );
-      // esto recarga la lista despues de guardar
-      void qc.invalidateQueries({ queryKey: ["productos"] });
+      void invalidateAfterCatalogMutate(qc);
       // La API guarda la imagen en BackgroundTasks después de responder; sin esto casi siempre ves imagen_url vacía.
       window.setTimeout(() => void qc.invalidateQueries({ queryKey: ["productos"] }), 4000);
       window.setTimeout(() => void qc.invalidateQueries({ queryKey: ["productos"] }), 10000);
@@ -68,8 +67,7 @@ export function useAdminProductoMutations() {
     mutationFn: ({ id, body }: { id: number; body: ProductoPatchBody }) => patchProducto(id, body),
     onSuccess: () => {
       toast.success("Producto actualizado");
-      // esto recarga la lista despues de guardar
-      void qc.invalidateQueries({ queryKey: ["productos"] });
+      void invalidateAfterCatalogMutate(qc);
     },
     onError: () => toast.error("Error al actualizar"),
   });
@@ -79,7 +77,7 @@ export function useAdminProductoMutations() {
       patchProductoStock(id, stock_cantidad),
     onSuccess: () => {
       toast.success("Stock actualizado");
-      void qc.invalidateQueries({ queryKey: ["productos"] });
+      void invalidateAfterCatalogMutate(qc);
     },
     onError: () => toast.error("Stock inválido"),
   });
@@ -88,7 +86,7 @@ export function useAdminProductoMutations() {
     mutationFn: (id: number) => deleteProducto(id),
     onSuccess: () => {
       toast.success("Producto eliminado");
-      void qc.invalidateQueries({ queryKey: ["productos"] });
+      void invalidateAfterCatalogMutate(qc);
     },
     onError: () => toast.error("No se pudo eliminar"),
   });

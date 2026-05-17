@@ -54,7 +54,7 @@ export function AdminDashboardPage() {
   const totalIngresosNum = toNum(data.ingresos_totales);
 
   return (
-    <div className="min-w-0 space-y-6 pb-10 md:space-y-8 md:pb-20">
+    <div className="min-w-0 max-w-full max-md:overflow-x-clip space-y-6 pb-10 md:space-y-8 md:overflow-x-visible md:pb-20">
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 gap-4 min-w-0 sm:grid-cols-2 md:grid-cols-3 md:gap-6">
         <div className="flex h-full min-w-0 flex-col justify-between rounded-2xl border border-border bg-white p-6 shadow-sm">
@@ -63,7 +63,7 @@ export function AdminDashboardPage() {
         </div>
         
         <div className="flex h-full min-w-0 flex-col justify-between rounded-2xl bg-primary p-6 text-white shadow-sm">
-          <span className="text-xs font-bold text-slate-300 uppercase tracking-widest mb-6">Ingresos</span>
+          <span className="text-xs font-bold text-white/75 uppercase tracking-widest mb-6">Ingresos</span>
           <div>
             <p className="break-words text-2xl font-black font-outfit tracking-tighter mb-1 sm:text-3xl md:text-4xl">
                 {totalIngresosNum.toLocaleString("es-AR", {
@@ -72,14 +72,14 @@ export function AdminDashboardPage() {
                 maximumFractionDigits: 0
                 })}
             </p>
-            <p className="text-[10px] font-bold text-slate-400">Total en órdenes finalizadas</p>
+            <p className="text-[10px] font-bold text-white/55">Total en órdenes finalizadas</p>
           </div>
         </div>
 
         <div className="flex h-full min-w-0 flex-col justify-between rounded-2xl border border-border bg-white p-6 shadow-sm sm:col-span-2 md:col-span-1">
           <span className="text-xs font-bold text-muted uppercase tracking-widest mb-6">Estado de Red</span>
           <div className="flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]"></div>
+            <div className="h-2 w-2 shrink-0 rounded-full bg-success shadow-[0_0_8px_rgb(22_163_74_/_0.45)]" />
             <p className="text-sm font-bold text-primary">Sistemas en línea</p>
           </div>
         </div>

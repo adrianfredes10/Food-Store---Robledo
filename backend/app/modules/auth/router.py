@@ -32,11 +32,21 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 _auth_service = AuthService()
 
-_rl_login = (
-    (lambda f: f)
-    if os.getenv("PYTEST_DISABLE_RATE_LIMIT", "").lower() in ("1", "true", "yes")
-    else limiter.limit("5 per 15 minutes")
-)
+def _env_truthy(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in ("1", "true", "yes", "on")
+
+
+def _login_rate_limit_decorator():
+    """Limita POST /login por IP (incluye logins exitosos). Ajustar con LOGIN_RATE_LIMIT o desactivar en dev."""
+    if _env_truthy("PYTEST_DISABLE_RATE_LIMIT") or _env_truthy("DISABLE_LOGIN_RATE_LIMIT"):
+        return lambda f: f
+    raw = os.getenv("LOGIN_RATE_LIMIT", "60 per 15 minutes").strip()
+    if not raw or raw.lower() in ("0", "off", "false", "none"):
+        return lambda f: f
+    return limiter.limit(raw)
+
+
+_rl_login = _login_rate_limit_decorator()
 
 
 def _map_auth_error(exc: ErrorAuth) -> HTTPException:

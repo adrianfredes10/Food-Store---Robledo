@@ -5,7 +5,7 @@ from typing import Optional
 from sqlalchemy import Boolean, CheckConstraint, Column, DateTime, Enum as SAEnum, ForeignKey, Integer, JSON, Numeric, String, Text, func, text
 from sqlmodel import Field, Relationship, SQLModel
 
-from app.core.enums import EstadoPedido as EstadoPedidoEnum
+from app.core.enums import EstadoPedido as EstadoPedidoEnum, TipoServicioPedido as TipoServicioPedidoEnum
 from app.modules.direcciones_entrega.model import DireccionEntrega
 from app.modules.productos.model import Producto
 from app.modules.usuarios.model import Usuario
@@ -35,6 +35,24 @@ class Pedido(SQLModel, table=True):
     direccion_entrega_id: int | None = Field(
         default=None,
         sa_column=Column(Integer, ForeignKey("direcciones_entrega.id", ondelete="SET NULL"), nullable=True, index=True),
+    )
+    tipo_servicio: TipoServicioPedidoEnum = Field(
+        default=TipoServicioPedidoEnum.DELIVERY,
+        sa_column=Column(
+            SAEnum(
+                TipoServicioPedidoEnum,
+                name="tipo_servicio_pedido",
+                native_enum=False,
+                values_callable=lambda enum_cls: [m.value for m in enum_cls],
+            ),
+            nullable=False,
+            server_default=text(f"'{TipoServicioPedidoEnum.DELIVERY.value}'"),
+        ),
+    )
+    numero_mesa: int | None = Field(default=None, sa_column=Column(Integer, nullable=True))
+    mesa_liberada_por_admin: bool = Field(
+        default=False,
+        sa_column=Column(Boolean, nullable=False, server_default=text("false")),
     )
     estado: EstadoPedidoEnum = Field(
         default=EstadoPedidoEnum.PENDIENTE,

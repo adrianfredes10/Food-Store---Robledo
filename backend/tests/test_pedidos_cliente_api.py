@@ -11,6 +11,7 @@ from sqlmodel import Session
 from app.core.enums import EstadoPedido
 from app.core.security.jwt_tokens import create_access_token
 from app.core.uow.unit_of_work import UnitOfWork
+from app.modules.mesas.model import Mesa
 from app.modules.pagos.model import FormaPago
 from app.modules.pedidos.service import PedidoService
 from app.modules.productos.model import Categoria, Producto
@@ -54,6 +55,8 @@ def _seed_forma_pago_producto(engine) -> tuple[int, str]:
                 disponible=True,
             ),
         )
+        for n in range(1, 31):
+            session.add(Mesa(numero=n, activa=True))
         session.flush()
         assert pizza.id is not None
         pid = pizza.id
@@ -65,7 +68,12 @@ def _seed_forma_pago_producto(engine) -> tuple[int, str]:
 def _crear_pedido_api(client: TestClient, token: str, producto_id: int) -> int:
     r = client.post(
         "/api/v1/pedidos",
-        json={"items": [{"producto_id": producto_id, "cantidad": 1}], "forma_pago_codigo": "MERCADOPAGO"},
+        json={
+            "items": [{"producto_id": producto_id, "cantidad": 1}],
+            "forma_pago_codigo": "MERCADOPAGO",
+            "tipo_servicio": "RETIRO_EN_LOCAL",
+            "numero_mesa": 3,
+        },
         headers=_auth_headers(token),
     )
     assert r.status_code == 201, r.text
@@ -179,3 +187,39 @@ def test_usuario_sin_pedidos_lista_vacia(client: TestClient, engine) -> None:
     r = client.get("/api/v1/pedidos", headers=_auth_headers(token))
     assert r.status_code == 200
     assert r.json()["items"] == []
+
+
+def test_dos_pedidos_pendientes_misma_mesa_permitidos(client: TestClient, producto_seed) -> None:
+    """Sin pago aprobado la mesa no queda reservada: dos clientes pueden pedir la misma hasta que uno pague."""
+    t1, _ = _register_and_token(client, "mesa-p1@test.com")
+    t2, _ = _register_and_token(client, "mesa-p2@test.com")
+    body = {
+        "items": [{"producto_id": producto_seed["id"], "cantidad": 1}],
+        "forma_pago_codigo": "MERCADOPAGO",
+        "tipo_servicio": "RETIRO_EN_LOCAL",
+        "numero_mesa": 11,
+    }
+    r1 = client.post("/api/v1/pedidos", headers=_auth_headers(t1), json=body)
+    r2 = client.post("/api/v1/pedidos", headers=_auth_headers(t2), json=body)
+    assert r1.status_code == 201, r1.text
+    assert r2.status_code == 201, r2.text
+
+
+def test_mesas_disponibles_requiere_auth(client: TestClient) -> None:
+    r = client.get("/api/v1/mesas/disponibles")
+    # Sin Authorization, HTTPBearer (auto_error=True) devuelve 403 en esta versión.
+    assert r.status_code in (401, 403)
+
+
+def test_mesas_disponibles_autenticado_lista_catalogo(client: TestClient, engine) -> None:
+    """GET /mesas/disponibles: cliente autenticado recibe mesas activas elegibles."""
+    _seed_forma_pago_producto(engine)
+    token, _ = _register_and_token(client, "mesas-disponibles@example.com")
+    r = client.get("/api/v1/mesas/disponibles", headers=_auth_headers(token))
+    assert r.status_code == 200
+    data = r.json()
+    assert isinstance(data, list)
+    assert len(data) >= 1
+    first = data[0]
+    assert "id" in first and "numero" in first
+    assert isinstance(first["numero"], int)

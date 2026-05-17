@@ -6,6 +6,7 @@ import {
   type CategoriaPatchBody,
   type CategoriaRead,
 } from "@/shared/api/endpoints/categorias";
+import { invalidateAfterCatalogMutate } from "@/shared/lib/queryCacheSync";
 
 const QUERY_KEY = ["admin-categorias-todas"] as const;
 
@@ -75,8 +76,7 @@ export function useCrearCategoria() {
   return useMutation({
     mutationFn: (data: CategoriaCreateBody) => categoriasApi.crear(data),
     onSuccess: () => {
-      // esto recarga la lista despues de guardar
-      void qc.invalidateQueries({ queryKey: QUERY_KEY });
+      void invalidateAfterCatalogMutate(qc);
     },
   });
 }
@@ -87,8 +87,7 @@ export function useActualizarCategoria() {
     mutationFn: ({ id, data }: { id: number; data: CategoriaPatchBody }) =>
       categoriasApi.actualizar(id, data),
     onSuccess: () => {
-      // esto recarga la lista despues de guardar
-      void qc.invalidateQueries({ queryKey: QUERY_KEY });
+      void invalidateAfterCatalogMutate(qc);
     },
   });
 }
@@ -98,7 +97,7 @@ export function useEliminarCategoria() {
   return useMutation({
     mutationFn: (id: number) => categoriasApi.eliminar(id),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: QUERY_KEY });
+      void invalidateAfterCatalogMutate(qc);
     },
   });
 }

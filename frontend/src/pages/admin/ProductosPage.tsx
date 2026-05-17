@@ -11,12 +11,57 @@ import {
 } from "@/features/admin";
 import { useProductos } from "@/features/productos/hooks/useProductos";
 import { apiErrorDetail } from "@/shared/api/apiErrorDetail";
+import type { IngredienteRead } from "@/shared/api/endpoints/ingredientes";
 import type { ProductoListadoItemDTO } from "@/shared/api/endpoints/productos";
 import { ConfirmDialog, FormField, LoadingButton } from "@/shared/ui";
 import { toast } from "sonner";
 
 function formatMoney(value: number) {
   return value.toLocaleString("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
+}
+
+function IngredientesPicker({
+  items,
+  selectedIds,
+  onToggle,
+}: {
+  items: IngredienteRead[];
+  selectedIds: number[];
+  onToggle: (id: number) => void;
+}) {
+  if (items.length === 0) {
+    return (
+      <p className="text-sm font-medium text-muted italic">
+        No hay ingredientes cargados. Creálos en <span className="font-semibold text-primary">Ingredientes</span> del
+        panel admin.
+      </p>
+    );
+  }
+  return (
+    <div className="max-h-44 overflow-y-auto overscroll-contain rounded-xl border border-border bg-bg-secondary p-3 space-y-2">
+      {[...items]
+        .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"))
+        .map((ing) => (
+          <label
+            key={ing.id}
+            className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-white transition-colors"
+          >
+            <input
+              type="checkbox"
+              className="h-4 w-4 shrink-0 rounded border-border text-accent focus:ring-accent transition-colors"
+              checked={selectedIds.includes(ing.id)}
+              onChange={() => onToggle(ing.id)}
+            />
+            <span className="text-sm font-bold text-primary flex-1 leading-tight">{ing.nombre}</span>
+            {ing.es_alergeno && (
+              <span className="shrink-0 rounded-full border border-danger/20 bg-danger/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-danger">
+                Alérgeno
+              </span>
+            )}
+          </label>
+        ))}
+    </div>
+  );
 }
 
 type EditForm = {
@@ -73,6 +118,7 @@ export function AdminProductosPage() {
     nombre: "",
     precio: "",
     stock_cantidad: "0",
+    ingredientes_ids: [] as number[],
   });
 
   useEffect(() => {
@@ -107,6 +153,15 @@ export function AdminProductosPage() {
   function cerrarEditar() {
     setEditProduct(null);
     setEditForm(EDIT_FORM_INICIAL);
+  }
+
+  function toggleIngredienteCreate(id: number) {
+    setForm((f) => ({
+      ...f,
+      ingredientes_ids: f.ingredientes_ids.includes(id)
+        ? f.ingredientes_ids.filter((x) => x !== id)
+        : [...f.ingredientes_ids, id],
+    }));
   }
 
   function toggleIngrediente(id: number) {
@@ -192,15 +247,14 @@ export function AdminProductosPage() {
   }
 
   return (
-    <div className="min-w-0 space-y-8 pb-16 sm:space-y-12 sm:pb-20">
-
+    <div className="min-w-0 max-w-full max-md:overflow-x-clip space-y-8 pb-16 max-md:mx-0 sm:space-y-12 sm:pb-20 md:overflow-x-visible">
       {/* ── Formulario de creación ─────────────────────────────────────── */}
-      <section className="rounded-2xl border border-border bg-white p-6 shadow-sm md:p-8">
+      <section className="min-w-0 max-w-full rounded-2xl border border-border bg-white p-4 shadow-sm max-md:px-3 md:p-8">
         <h2 className="mb-6 border-b border-border pb-4 text-sm font-bold uppercase tracking-widest text-primary">
           Nuevo Producto
         </h2>
         <form
-          className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 lg:grid-cols-5"
+          className="space-y-6"
           onSubmit={(e) => {
             e.preventDefault();
             const categoria_id = Number(form.categoria_id);
@@ -219,21 +273,28 @@ export function AdminProductosPage() {
               toast.error("Seleccioná una categoría válida del listado.");
               return;
             }
+            const ingredientesPayload = form.ingredientes_ids.map((ingId) => ({
+              ingrediente_id: ingId,
+              cantidad: 1,
+              es_removible: true,
+            }));
             crear.mutate({
               categoria_id: Number.isFinite(categoria_id) && categoria_id >= 1 ? categoria_id : 1,
               nombre: form.nombre.trim(),
               precio,
               stock_cantidad: Number.isFinite(stock_cantidad) && stock_cantidad >= 0 ? stock_cantidad : 0,
-              ingredientes: [],
+              ingredientes: ingredientesPayload as unknown[],
             });
             setForm({
               categoria_id: form.categoria_id,
               nombre: "",
               precio: "",
               stock_cantidad: "0",
+              ingredientes_ids: [],
             });
           }}
         >
+          <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 lg:grid-cols-5">
           <FormField label="Categoría" className="lg:col-span-1">
             <select
               className="mt-1 w-full bg-bg-secondary border border-border rounded-xl px-4 py-3 text-sm font-bold text-primary focus:border-accent focus:bg-white outline-none transition-all"
@@ -291,12 +352,22 @@ export function AdminProductosPage() {
               Confirmar Alta
             </LoadingButton>
           </div>
+          </div>
+
+        <div className="border-t border-border pt-6">
+          <p className="text-xs font-bold uppercase tracking-widest text-muted mb-3">Ingredientes (opcional)</p>
+          <IngredientesPicker
+            items={todosIngredientes}
+            selectedIds={form.ingredientes_ids}
+            onToggle={toggleIngredienteCreate}
+          />
+        </div>
         </form>
       </section>
 
       {/* ── Tabla de productos ─────────────────────────────────────────── */}
-      <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
-        <div className="overflow-x-auto overscroll-x-contain">
+      <div className="max-w-full overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+        <div className="overflow-x-auto overscroll-x-contain -mx-0">
           <table className="w-full min-w-[820px] border-collapse text-left">
             <thead className="bg-bg-secondary border-b border-border">
               <tr>
@@ -391,7 +462,7 @@ export function AdminProductosPage() {
           role="dialog"
           aria-modal="true"
         >
-          <div className="max-h-[min(92dvh,100vh)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-white p-6 shadow-xl sm:rounded-2xl md:p-8 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+          <div className="max-h-[min(92dvh,100vh)] w-full min-w-0 max-w-lg max-md:max-w-[calc(100vw-0.75rem)] overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-white p-4 shadow-xl max-md:mx-auto sm:rounded-2xl sm:p-6 md:p-8 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             <h3 className="text-sm font-bold uppercase tracking-widest text-primary border-b border-border pb-4 mb-6">
               Editar producto <span className="font-outfit font-black">#{editProduct.id}</span>
             </h3>
@@ -471,38 +542,12 @@ export function AdminProductosPage() {
 
               {/* Ingredientes */}
               <div>
-                <p className="text-xs font-bold uppercase tracking-widest text-muted mb-3">
-                  Ingredientes
-                </p>
-                {todosIngredientes.length === 0 ? (
-                  <p className="text-sm font-medium text-muted italic">No hay ingredientes cargados.</p>
-                ) : (
-                  <div className="max-h-44 overflow-y-auto overscroll-contain rounded-xl border border-border bg-bg-secondary p-3 space-y-2">
-                    {[...todosIngredientes]
-                      .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"))
-                      .map((ing) => (
-                        <label
-                          key={ing.id}
-                          className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-white transition-colors"
-                        >
-                          <input
-                            type="checkbox"
-                            className="h-4 w-4 shrink-0 rounded border-border text-accent focus:ring-accent transition-colors"
-                            checked={editForm.ingredientes_ids.includes(ing.id)}
-                            onChange={() => toggleIngrediente(ing.id)}
-                          />
-                          <span className="text-sm font-bold text-primary flex-1 leading-tight">
-                            {ing.nombre}
-                          </span>
-                          {ing.es_alergeno && (
-                            <span className="shrink-0 rounded-full border border-danger/20 bg-danger/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-danger">
-                              Alérgeno
-                            </span>
-                          )}
-                        </label>
-                      ))}
-                  </div>
-                )}
+                <p className="text-xs font-bold uppercase tracking-widest text-muted mb-3">Ingredientes</p>
+                <IngredientesPicker
+                  items={todosIngredientes}
+                  selectedIds={editForm.ingredientes_ids}
+                  onToggle={toggleIngrediente}
+                />
               </div>
             </div>
 

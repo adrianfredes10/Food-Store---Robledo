@@ -141,9 +141,9 @@ class CategoriaService:
             raise CategoriaNoEncontradaError(categoria_id)
 
         # no se puede borrar si tiene hijos o productos activos
-        if uow.categorias.count_hijos_activos(categoria_id) > 0:
+        if uow.categorias.count_subcategorias_no_eliminadas(categoria_id) > 0:
             raise CategoriaConHijosActivosError(categoria_id)
-        if uow.categorias.count_productos_activos_en_categoria(categoria_id) > 0:
+        if uow.categorias.count_productos_no_eliminados_en_categoria(categoria_id) > 0:
             raise CategoriaConProductosActivosError(categoria_id)
 
         c.deleted_at = datetime.now(timezone.utc)

@@ -135,8 +135,8 @@ export function AdminIngredientesPage() {
   const estaVacio = filasOrdenadas.length === 0;
 
   return (
-    <div className="min-w-0 space-y-8 pb-16 sm:space-y-8 sm:pb-20">
-      <section className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-border bg-white p-6 shadow-sm md:p-8">
+    <div className="min-w-0 max-w-full max-md:overflow-x-clip space-y-8 pb-16 sm:space-y-8 sm:pb-20 md:overflow-x-visible">
+      <section className="box-border max-w-full overflow-hidden rounded-2xl border border-border bg-white p-4 shadow-sm sm:flex sm:flex-row sm:items-center sm:justify-between sm:p-6 md:p-8 flex flex-col gap-4">
         <h2 className="text-sm font-bold uppercase tracking-widest text-primary">
           Ingredientes
         </h2>
@@ -149,7 +149,7 @@ export function AdminIngredientesPage() {
         </button>
       </section>
 
-      <section className="rounded-2xl border border-border bg-white p-6 shadow-sm md:p-8">
+      <section className="box-border max-w-full overflow-hidden rounded-2xl border border-border bg-white p-4 shadow-sm sm:p-6 md:p-8">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
           <div className="space-y-2 lg:col-span-2">
             <FormField label="Buscar por nombre">
@@ -175,7 +175,7 @@ export function AdminIngredientesPage() {
         </div>
       </section>
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+      <div className="max-w-full overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
         <div className="overflow-x-auto overscroll-x-contain">
           <table className="w-full min-w-[560px] border-collapse text-left">
             <thead className="bg-bg-secondary border-b border-border">
@@ -259,7 +259,7 @@ export function AdminIngredientesPage() {
           role="dialog"
           aria-modal="true"
         >
-          <div className="max-h-[min(90dvh,100vh)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-white p-6 shadow-xl sm:rounded-2xl md:p-8 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+          <div className="box-border max-h-[min(90dvh,100dvh)] w-full max-w-[min(32rem,calc(100vw-1rem))] overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-white p-4 shadow-xl sm:mx-auto sm:rounded-2xl sm:p-6 md:p-8 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             <h3 className="text-sm font-bold uppercase tracking-widest text-primary border-b border-border pb-4 mb-6">
               {modalMode === "create" ? "Nuevo ingrediente" : "Editar ingrediente"}
             </h3>

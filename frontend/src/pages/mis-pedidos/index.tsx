@@ -34,6 +34,23 @@ function formatFecha(iso: string): string {
   });
 }
 
+function etiquetaServicioCliente(p: {
+  tipo_servicio: string;
+  numero_mesa: number | null;
+  dir_alias: string | null;
+  dir_linea1: string | null;
+}): string {
+  if (p.tipo_servicio === "RETIRO_EN_LOCAL") {
+    return `Local · Mesa ${p.numero_mesa ?? "—"}`;
+  }
+  const alias = p.dir_alias?.trim();
+  const linea = p.dir_linea1?.trim();
+  if (alias && linea) return `${alias} — ${linea}`;
+  if (linea) return linea;
+  if (alias) return alias;
+  return "Envío a domicilio";
+}
+
 export function MisPedidosPage() {
   const hydrated = useAuthHydrated();
   const token = useAuthStore((s) => s.access_token);
@@ -141,11 +158,12 @@ export function MisPedidosPage() {
         <>
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
-                <table className="w-full min-w-[640px] text-left">
+                <table className="w-full min-w-[880px] text-left">
                     <thead className="bg-bg-secondary border-b border-border">
                         <tr>
                         <th className="px-6 py-4 text-xs font-bold text-muted uppercase tracking-wider">Nº Pedido</th>
                         <th className="px-6 py-4 text-xs font-bold text-muted uppercase tracking-wider">Fecha</th>
+                        <th className="px-6 py-4 text-xs font-bold text-muted uppercase tracking-wider">Entrega</th>
                         <th className="px-6 py-4 text-xs font-bold text-muted uppercase tracking-wider">Estado</th>
                         <th className="px-6 py-4 text-xs font-bold text-muted uppercase tracking-wider">Total</th>
                         <th className="px-6 py-4 text-right text-xs font-bold text-muted uppercase tracking-wider">Acción</th>
@@ -156,6 +174,11 @@ export function MisPedidosPage() {
                         <tr key={p.id} className="hover:bg-primary/5 transition-colors group">
                             <td className="px-6 py-4 text-sm font-bold text-primary group-hover:text-accent font-outfit">#{p.id}</td>
                             <td className="px-6 py-4 text-sm text-muted">{formatFecha(p.created_at)}</td>
+                            <td className="px-6 py-4 text-xs font-bold text-primary max-w-[220px]">
+                              <span className="line-clamp-2 break-words" title={etiquetaServicioCliente(p)}>
+                                {etiquetaServicioCliente(p)}
+                              </span>
+                            </td>
                             <td className="px-6 py-4">
                                 <EstadoBadge estado={p.estado} />
                             </td>
@@ -178,6 +201,9 @@ export function MisPedidosPage() {
                             <div className="space-y-1">
                                 <span className="text-lg font-black text-primary font-outfit">#{p.id}</span>
                                 <span className="text-xs text-muted block capitalize">{formatFecha(p.created_at)}</span>
+                                <span className="text-xs font-bold text-primary block pt-1 line-clamp-2">
+                                  {etiquetaServicioCliente(p)}
+                                </span>
                             </div>
                             <EstadoBadge estado={p.estado} />
                         </div>

@@ -7,16 +7,23 @@ from app.modules.admin import service as admin_service
 from app.modules.admin.schemas import (
     AdminPedidosPage,
     AdminPedidoTransicionRequest,
+    AdminUsuariosPage,
     MetricasDashboardResponse,
     PedidoAdminDetalleResponse,
 )
-from app.modules.pedidos.exceptions import ErrorDominioPedido, PedidoNoEncontradoError
+from app.modules.pedidos.exceptions import (
+    ErrorDominioPedido,
+    MesaOcupadaParaPedidoError,
+    PedidoNoEncontradoError,
+)
 from app.modules.usuarios.model import Usuario
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 def _map_pedido_domain(exc: ErrorDominioPedido) -> HTTPException:
+    if isinstance(exc, MesaOcupadaParaPedidoError):
+        return HTTPException(status.HTTP_409_CONFLICT, detail=str(exc))
     return HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 
@@ -26,6 +33,16 @@ def admin_dashboard(
     uow: UnitOfWork = Depends(get_uow),
 ) -> MetricasDashboardResponse:
     return admin_service.obtener_metricas_dashboard(uow)
+
+
+@router.get("/usuarios", response_model=AdminUsuariosPage)
+def admin_listar_usuarios(
+    page: int = Query(1, ge=1),
+    size: int = Query(20, ge=1, le=100),
+    _: Usuario = Depends(require_admin),
+    uow: UnitOfWork = Depends(get_uow),
+) -> AdminUsuariosPage:
+    return admin_service.listar_usuarios_admin(uow, page=page, size=size)
 
 
 @router.get("/pedidos", response_model=AdminPedidosPage)

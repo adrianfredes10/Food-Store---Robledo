@@ -10,6 +10,7 @@ import {
   type DireccionCreateBody,
   type DireccionUpdateBody,
 } from "@/shared/api/endpoints/direcciones";
+import { invalidateAfterDireccionesMutate } from "@/shared/lib/queryCacheSync";
 import { useAuthStore } from "@/shared/store/auth-store";
 
 export function useDirecciones() {
@@ -28,7 +29,7 @@ export function useDireccionesMutations() {
     mutationFn: (body: DireccionCreateBody) => createDireccion(body),
     onSuccess: () => {
       toast.success("Dirección guardada");
-      void qc.invalidateQueries({ queryKey: ["direcciones"] });
+      void invalidateAfterDireccionesMutate(qc);
     },
     onError: () => toast.error("No se pudo crear la dirección"),
   });
@@ -37,7 +38,7 @@ export function useDireccionesMutations() {
     mutationFn: ({ id, body }: { id: number; body: DireccionUpdateBody }) => updateDireccion(id, body),
     onSuccess: () => {
       toast.success("Dirección actualizada");
-      void qc.invalidateQueries({ queryKey: ["direcciones"] });
+      void invalidateAfterDireccionesMutate(qc);
     },
     onError: () => toast.error("No se pudo actualizar"),
   });
@@ -46,7 +47,7 @@ export function useDireccionesMutations() {
     mutationFn: (id: number) => deleteDireccion(id),
     onSuccess: () => {
       toast.success("Dirección eliminada");
-      void qc.invalidateQueries({ queryKey: ["direcciones"] });
+      void invalidateAfterDireccionesMutate(qc);
     },
     onError: () => toast.error("No se pudo eliminar"),
   });
@@ -59,7 +60,7 @@ export function useMarcarPrincipal() {
   return useMutation({
     mutationFn: (dir_id: number) => marcarDireccionPrincipal(dir_id),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ["direcciones"] });
+      void invalidateAfterDireccionesMutate(qc);
     },
   });
 }

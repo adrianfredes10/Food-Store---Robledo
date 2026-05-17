@@ -12,7 +12,7 @@ export function ProductoList({ productos }: Props) {
   }
 
   return (
-    <div className="grid min-w-0 grid-cols-2 gap-3 sm:grid-cols-2 md:gap-8 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="grid min-w-0 grid-cols-1 gap-3 min-[400px]:grid-cols-2 md:gap-6 lg:grid-cols-3 lg:gap-8 xl:grid-cols-4">
       {productos.map((p) => (
         <ProductoCard key={p.id} producto={p} />
       ))}

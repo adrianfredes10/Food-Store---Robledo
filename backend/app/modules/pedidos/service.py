@@ -7,12 +7,19 @@ from collections import defaultdict
 from decimal import Decimal
 from typing import TYPE_CHECKING, Sequence
 
-from app.core.enums import EstadoPedido
+from app.core.enums import EstadoPedido, TipoServicioPedido
 from app.modules.pedidos.exceptions import (
     DireccionEntregaNoValidaError,
+    DireccionEntregaRequeridaError,
+    DireccionNoAplicaRetiroLocalError,
     ErrorDominioPedido,
     FormaPagoNoValidaError,
+    MesaNoHabilitadaParaPedidoError,
+    MesaOcupadaParaPedidoError,
     MotivoCancelacionRequeridoError,
+    NumeroMesaFueraDeRangoError,
+    NumeroMesaNoAplicaDeliveryError,
+    NumeroMesaRequeridoError,
     PedidoEnEstadoTerminalError,
     PedidoHistorialDesincronizadoError,
     PedidoNoEncontradoError,
@@ -45,6 +52,18 @@ _TRANSICIONES_PERMITIDAS: dict[EstadoPedido, frozenset[EstadoPedido]] = {
 _ESTADOS_TERMINALES = frozenset({EstadoPedido.ENTREGADO, EstadoPedido.CANCELADO})
 
 COSTO_ENVIO_FIJO_V1 = Decimal("50.00")
+MESA_MIN = 1
+MESA_MAX = 999
+
+
+def validar_mesa_retiro_antes_aprobar_pago(uow: UnitOfWork, pedido: Pedido) -> None:
+    """Salón: no aprobar cobro si otro pedido ya pagado retiene esa mesa."""
+    if pedido.tipo_servicio != TipoServicioPedido.RETIRO_EN_LOCAL or pedido.numero_mesa is None:
+        return
+    ocupacion = uow.pedidos.map_ocupacion_por_numero_mesa_local()
+    otro = ocupacion.get(pedido.numero_mesa)
+    if otro is not None and otro.id != pedido.id:
+        raise MesaOcupadaParaPedidoError(pedido.numero_mesa)
 
 
 def _validar_coherencia_pedido_con_historial(pedido_id: int, pedido: Pedido, ultimo: HistorialEstadoPedido | None) -> None:
@@ -133,6 +152,8 @@ class PedidoService:
         usuario_id: int,
         lineas: Sequence[tuple[int, int, list[int] | None]],
         direccion_entrega_id: int | None = None,
+        tipo_servicio: TipoServicioPedido = TipoServicioPedido.DELIVERY,
+        numero_mesa: int | None = None,
         observaciones_cliente: str | None = None,
         moneda: str = "ARS",
         forma_pago_codigo: str = "MERCADOPAGO",
@@ -143,6 +164,24 @@ class PedidoService:
         No descuenta stock aquí (solo al confirmar vía ``transicionar_estado``). El llamador no debe
         invocar ``validar_lineas_para_crear_pedido`` por separado: ya está incluido.
         """
+        if tipo_servicio == TipoServicioPedido.DELIVERY:
+            if numero_mesa is not None:
+                raise NumeroMesaNoAplicaDeliveryError()
+            if direccion_entrega_id is None:
+                raise DireccionEntregaRequeridaError()
+        elif tipo_servicio == TipoServicioPedido.RETIRO_EN_LOCAL:
+            if direccion_entrega_id is not None:
+                raise DireccionNoAplicaRetiroLocalError()
+            if numero_mesa is None:
+                raise NumeroMesaRequeridoError()
+            if numero_mesa < MESA_MIN or numero_mesa > MESA_MAX:
+                raise NumeroMesaFueraDeRangoError(numero_mesa)
+            mesa_row = uow.mesas.get_by_numero(numero_mesa)
+            if mesa_row is None or not mesa_row.activa:
+                raise MesaNoHabilitadaParaPedidoError(numero_mesa)
+            ocupacion = uow.pedidos.map_ocupacion_por_numero_mesa_local()
+            if numero_mesa in ocupacion:
+                raise MesaOcupadaParaPedidoError(numero_mesa)
         # 1. verifico la direccion si viene
         dir_linea1 = dir_linea2 = dir_ciudad = dir_provincia = dir_cp = dir_alias = None
         if direccion_entrega_id is not None:
@@ -151,6 +190,8 @@ class PedidoService:
                 raise DireccionEntregaNoValidaError(direccion_entrega_id)
             dir_linea1 = d.linea1
             dir_alias = d.alias
+
+        costo_envio = COSTO_ENVIO_FIJO_V1 if tipo_servicio == TipoServicioPedido.DELIVERY else Decimal("0")
 
         # 2. valido forma de pago
         if uow.pagos.get_forma_pago_por_codigo(forma_pago_codigo) is None:
@@ -167,17 +208,19 @@ class PedidoService:
             cant_dec = Decimal(cantidad)
             subtotal_items += p.precio * cant_dec
 
-        total = subtotal_items + COSTO_ENVIO_FIJO_V1
+        total = subtotal_items + costo_envio
 
         # 4. guardo el pedido
         pedido = Pedido(
             usuario_id=usuario_id,
             direccion_entrega_id=direccion_entrega_id,
+            tipo_servicio=tipo_servicio,
+            numero_mesa=numero_mesa,
             estado=EstadoPedido.PENDIENTE,
             total=total,
             moneda=moneda,
             observaciones_cliente=observaciones_cliente,
-            costo_envio=COSTO_ENVIO_FIJO_V1,
+            costo_envio=costo_envio,
             forma_pago_codigo=forma_pago_codigo,
             dir_linea1=dir_linea1,
             dir_linea2=dir_linea2,
@@ -261,6 +304,7 @@ class PedidoService:
             pedido.motivo_cancelacion = motivo.strip()
 
         if actual == EstadoPedido.PENDIENTE and nuevo_estado == EstadoPedido.CONFIRMADO:
+            validar_mesa_retiro_antes_aprobar_pago(uow, pedido)
             _descontar_stock_al_confirmar(uow, pedido_id)
 
         registro = HistorialEstadoPedido(
@@ -283,6 +327,8 @@ class PedidoService:
             id=pedido.id,
             estado=pedido.estado.value,
             total=pedido.total,
+            tipo_servicio=pedido.tipo_servicio.value,
+            numero_mesa=pedido.numero_mesa,
             costo_envio=pedido.costo_envio,
             forma_pago_codigo=pedido.forma_pago_codigo,
             dir_linea1=pedido.dir_linea1,
@@ -310,6 +356,10 @@ class PedidoService:
                 id=p.id,
                 estado=p.estado.value,
                 total=p.total,
+                tipo_servicio=p.tipo_servicio.value,
+                numero_mesa=p.numero_mesa,
+                dir_alias=p.dir_alias,
+                dir_linea1=p.dir_linea1,
                 costo_envio=p.costo_envio,
                 created_at=p.created_at,
                 cantidad_items=len(p.detalles),

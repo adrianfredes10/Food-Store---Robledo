@@ -63,25 +63,25 @@ class CategoriaRepository:
         stmt = select(func.count()).select_from(Categoria).where(and_(*cond))
         return int(self._session.exec(stmt).one()) > 0
 
-    def count_hijos_activos(self, categoria_id: int) -> int:
+    def count_subcategorias_no_eliminadas(self, categoria_id: int) -> int:
+        """Subcategorías hijas aún no dadas de baja (no filtra por `activo`)."""
         stmt = (
             select(func.count())
             .select_from(Categoria)
             .where(
                 Categoria.parent_id == categoria_id,
-                Categoria.activo.is_(True),
                 col(Categoria.deleted_at).is_(None),
             )
         )
         return int(self._session.exec(stmt).one())
 
-    def count_productos_activos_en_categoria(self, categoria_id: int) -> int:
+    def count_productos_no_eliminados_en_categoria(self, categoria_id: int) -> int:
+        """Productos del catálogo aún no eliminados (`deleted_at`), incluye pausados (`activo=False`)."""
         stmt = (
             select(func.count())
             .select_from(Producto)
             .where(
                 Producto.categoria_id == categoria_id,
-                Producto.activo.is_(True),
                 col(Producto.deleted_at).is_(None),
             )
         )

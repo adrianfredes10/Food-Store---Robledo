@@ -28,9 +28,10 @@ Documento **canónico** de contexto para humanos, agentes (Cursor, Antigravity, 
 | `backend/` | Código Python `app/`, Alembic, `pyproject.toml`, tests `tests/`, `.env` local (no commitear) |
 | `frontend/` | SPA: `src/` (páginas, features, shared), `vite.config.ts`, `package.json`, `.env` local |
 | `openspec/project.md` | **Este archivo** |
-| `README.md` | Setup: Postgres vs SQLite, uvicorn, npm, Alembic |
+| `README.md` | Puntero de inicio: Docker + `project.md` |
+| `DOCKER.md` | Stack **docker compose** (Postgres, API, Vite) con volúmenes y recarga |
+| `docker-compose.yml` | Servicios `postgres` (host **5433**), `api` (**8008**), `web` (**5173**) |
 | `AGENTS.md` | Regla: leer este `project.md` al iniciar tareas del repo |
-| `PROJECT_CONTEXT.md` | Puntero corto a `openspec/project.md` |
 | `.cursor/commands/` | Comandos tipo opsx (propose, apply, …) |
 | `.cursor/skills/openspec-*` | Skills OpenSpec (CLI `openspec` si aplica) |
 
@@ -88,6 +89,18 @@ Tras seed inicial (si no existía):
 
 - **Email:** `admin@foodstore.com`
 - **Contraseña:** `Admin1234!`
+
+### 3.5 Docker (desarrollo)
+
+En la raíz del monorepo, **`docker compose up --build`** levanta Postgres, la API (Alembic `upgrade head` al arrancar el contenedor) y Vite con volúmenes montados. Detalle, URLs y troubleshooting: **`DOCKER.md`**.
+
+| Servicio Compose | Puerto en el host |
+|------------------|-------------------|
+| `web` (Vite) | **5173** |
+| `api` (FastAPI) | **8008** |
+| `postgres` | **5433** → 5432 en red interna |
+
+El frontend en Docker usa `VITE_API_BASE_URL=http://127.0.0.1:8008` para que el navegador llame a la API expuesta en el host.
 
 ---
 
@@ -212,19 +225,46 @@ Persistencia: **`linea1`** compuesta en servidor desde calle, número, ciudad, C
 | Método | Path | Notas |
 |--------|------|--------|
 | GET | `/pedidos` | Listado del **usuario** autenticado (paginado, filtro `estado`) |
-| POST | `/pedidos` | Crea pedido **PENDIENTE**; valida stock, dirección, forma de pago |
+| POST | `/pedidos` | Crea pedido **PENDIENTE**; valida stock, dirección según **`tipo_servicio`**, forma de pago |
 | GET | `/pedidos/{id}` | Detalle con **snapshot** de precios en líneas |
 | GET | `/pedidos/{id}/historial` | Historial; **ADMIN o PEDIDOS** ven cualquier pedido |
 | DELETE | `/pedidos/{id}` | Cancelación cliente (**solo PENDIENTE**); body `motivo` |
 | POST | `/pedidos/{id}/cancelar` | Alias compatible de cancelación |
 
+**Modalidad (`TipoServicioPedido`):**
+
+- **`DELIVERY`:** requiere dirección de envío válida; aplica **`COSTO_ENVIO_FIJO_V1`**.
+- **`RETIRO_EN_LOCAL`:** sin costo de envío en total; **`numero_mesa`** obligatorio en creación según reglas del servicio; uso de catálogo de mesas / ocupación vinculado a pedidos activos del salón (ver `PedidoService` y `mesa_liberada_por_admin`).
+
 **Reglas de negocio clave** (`PedidoService`):
 
-- **Costo de envío fijo v1:** `COSTO_ENVIO_FIJO_V1 = 50.00` (misma moneda que el pedido).
-- **Total** = suma subtotems + envío.
+- **Costo de envío:** fijo **`50.00`** solo si **`tipo_servicio == DELIVERY`**; **`0`** si retiro en local.
+- **Total** = suma ítems + envío (cuando aplica).
 - **Stock:** no se descuenta al crear; se descuenta al pasar a **CONFIRMADO** (pago aprobado o transición admin).
 - **FSM** (`EstadoPedido`): PENDIENTE → CONFIRMADO | CANCELADO; CONFIRMADO → EN_PREP | CANCELADO; … hasta ENTREGADO; estados terminales sin salida.
 - **Cancelación cliente:** solo **PENDIENTE**.
+- Pagos antes de confirmar pueden validar mesa disponible (**`validar_mesa_retiro_antes_aprobar_pago`** en flujo MP).
+
+### 6.6bis Mesas — `/admin/mesas` y `/mesas`
+
+**Admin** (prefijo coincide con otros recursos admin; router en `modules/mesas/router.py`, auth **ADMIN**):
+
+| Método | Path | Notas |
+|--------|------|--------|
+| GET | `/admin/mesas/estado` | Vista agregada: mesas vs ocupación / catálogo |
+| GET | `/admin/mesas` | Listado ordenado |
+| POST | `/admin/mesas` | Alta (`201`) |
+| PATCH | `/admin/mesas/{mesa_id}` | Actualización |
+| DELETE | `/admin/mesas/{mesa_id}` | Baja (`204`) |
+| POST | `/admin/mesas/{mesa_id}/liberar` | Libera ocupación de salón vía negocio admin (`204`) |
+
+**Cliente autenticado** (`router_cliente.py`):
+
+| Método | Path | Notas |
+|--------|------|--------|
+| GET | `/mesas/disponibles` | Mesas disponibles para reserva en checkout |
+
+Persistencia y migraciones: tabla **`mesas`** (Alembic `0004_mesas_catalogo`; pedido **`mesa_liberada_por_admin`** en `0005_…`).
 
 ### 6.7 Pagos — `/pagos`
 
@@ -244,9 +284,12 @@ Persistencia: **`linea1`** compuesta en servidor desde calle, número, ciudad, C
 | Método | Path | Auth |
 |--------|------|------|
 | GET | `/admin/dashboard` | **ADMIN** |
+| GET | `/admin/usuarios` | **ADMIN**; paginado (`page`, `size`) |
 | GET | `/admin/pedidos` | **ADMIN** |
 | GET | `/admin/pedidos/{id}` | **ADMIN** |
-| POST | `/admin/pedidos/{id}/transicion` | **ADMIN**; body `estado` = valor `EstadoPedido` |
+| POST | `/admin/pedidos/{id}/transicion` | **ADMIN**; body `estado` = valor `EstadoPedido`; conflictos de dominio (p. ej. mesa ocupada) → **`409`** |
+
+Catálogo de mesas bajo **`/admin/mesas`**: ver **§6.6bis**.
 
 ---
 
@@ -275,6 +318,8 @@ Layout público con nav + footer:
 | `/admin/productos` | ABM productos |
 | `/admin/categorias` | Categorías |
 | `/admin/ingredientes` | Ingredientes |
+| `/admin/mesas` | Catálogo de mesas / estado / liberar mesa |
+| `/admin/usuarios` | Listado de usuarios (admin) |
 | `/admin/pedidos` | Listado pedidos |
 | `/admin/pedidos/:id` | Detalle / transiciones |
 
@@ -313,8 +358,9 @@ Archivos de test (nombre orientativo):
 | `test_ingredientes.py` | CRUD, filtros, uso en producto |
 | `test_direcciones.py` | Principal, aislamiento entre usuarios |
 | `test_pedidos_fsm.py` | FSM en servicio + **integración HTTP** pedidos/historial/cancelación/transiciones |
-| `test_pedidos_cliente_api.py` | Flujos API cliente de pedidos |
+| `test_pedidos_cliente_api.py` | Pedidos cliente, búsqueda catálogo, **mesas disponibles** (`/mesas/disponibles`) |
 | `test_pagos.py` | Idempotencia checkout + webhooks |
+| `test_admin_api.py` | Endpoints admin (dashboard, usuarios, pedidos, transiciones) |
 
 Integración: preferir **HTTP** contra la app; no mockear UoW/servicios salvo decisión explícita.
 
@@ -322,23 +368,24 @@ Integración: preferir **HTTP** contra la app; no mockear UoW/servicios salvo de
 
 ## 9. Dominio — reglas que suelen romperse si se ignoran
 
-1. **Envío:** fijo **50.00** en la versión actual del servicio de pedidos.
-2. **Snapshot:** `precio_unitario_snapshot` en detalle de pedido no cambia si el producto sube de precio después.
-3. **Stock:** baja al **confirmar** (pago o admin), no al crear el pedido.
-4. **Webhooks:** diseñados para ser **idempotentes** (mismo pago notificado dos veces).
-5. **Categorías:** restricciones de nombre único por padre; no borrar con productos activos (conflict).
-6. **Emails de test:** usar dominios válidos para Pydantic (`example.com`).
+1. **Envío:** fijo **50.00** solo en **`DELIVERY`**; pedidos **`RETIRO_EN_LOCAL`** llevan **envío 0** y **`numero_mesa`** según reglas del servicio.
+2. **Salón / mesas:** catálogo en BD; ocupación coherente con pedidos en local; admin puede **liberar mesa**; transiciones pueden devolver **409** si hay conflicto de mesa ocupada.
+3. **Snapshot:** `precio_unitario_snapshot` en detalle de pedido no cambia si el producto sube de precio después.
+4. **Stock:** baja al **confirmar** (pago o admin), no al crear el pedido.
+5. **Webhooks:** diseñados para ser **idempotentes** (mismo pago notificado dos veces).
+6. **Categorías:** restricciones de nombre único por padre; no borrar con productos activos (conflict).
+7. **Emails de test:** usar dominios válidos para Pydantic (`example.com`).
 
 ---
 
 ## 10. OpenSpec / agentes — checklist rápido
 
 1. Leer **`openspec/project.md`** (este archivo) y **`AGENTS.md`**.
-2. Para instalación: **`README.md`**.
+2. Para instalación local o Docker: **`README.md`** + **`DOCKER.md`**.
 3. No commitear **`.env`** ni claves.
 4. Tras cambiar **`frontend/.env`**, reiniciar **`npm run dev`**.
 5. Mantener este documento al día cuando cambien contratos globales, env vars o flujos críticos.
 
 ---
 
-*Última ampliación orientada a handoff completo (API, front, env, dominio, tests, operación local).*
+*Última revisión: mesas / retiro en local, admin usuarios, stack Docker en raíz, tests `test_admin_api.py`.*

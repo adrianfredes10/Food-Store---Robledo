@@ -18,3 +18,10 @@ class EstadoPago(StrEnum):
     APROBADO = "APROBADO"
     RECHAZADO = "RECHAZADO"
     REEMBOLSADO = "REEMBOLSADO"
+
+
+class TipoServicioPedido(StrEnum):
+    """Modalidad del pedido: envío a domicilio o consumo en el local."""
+
+    DELIVERY = "DELIVERY"
+    RETIRO_EN_LOCAL = "RETIRO_EN_LOCAL"

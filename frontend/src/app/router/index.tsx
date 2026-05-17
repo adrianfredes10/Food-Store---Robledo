@@ -1,4 +1,4 @@
-import { createBrowserRouter, Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { createBrowserRouter, Link, NavLink, Outlet, useLocation, Navigate } from "react-router-dom";
 
 import { useMe } from "@/features/auth";
 import { AuthLoginPage } from "@/pages/auth";
@@ -9,10 +9,11 @@ import { AdminPedidosPage } from "@/pages/admin/PedidosPage";
 import { AdminCategoriasPage } from "@/pages/admin/CategoriasPage";
 import { AdminIngredientesPage } from "@/pages/admin/IngredientesPage";
 import { AdminProductosPage } from "@/pages/admin/ProductosPage";
+import { AdminUsuariosPage } from "@/pages/admin/UsuariosPage";
+import { AdminMesasPage } from "@/pages/admin/MesasPage";
 import { CarritoPage } from "@/pages/carrito";
 import { CatalogoPage } from "@/pages/catalogo";
 import { CheckoutPage } from "@/pages/checkout";
-import { GuiaPage } from "@/pages/guia";
 import { DireccionesPage } from "@/pages/direcciones";
 import { MisPedidosPage } from "@/pages/mis-pedidos";
 import { PedidoPage } from "@/pages/pedido";
@@ -61,7 +62,6 @@ function MainNav() {
       {/* Center: Desktop Links (>1024px) */}
       <div className="hidden lg:flex flex-1 items-center justify-center gap-8 text-sm font-semibold text-muted">
         <NavLink to="/" className={({ isActive }) => `hover:text-primary transition-colors ${isActive ? "text-primary border-b-2 border-primary" : ""}`}>Catálogo</NavLink>
-        <NavLink to="/guia" className={({ isActive }) => `hover:text-primary transition-colors ${isActive ? "text-primary border-b-2 border-primary" : ""}`}>Guía</NavLink>
         {isClient && <NavLink to="/mis-pedidos" className={({ isActive }) => `hover:text-primary transition-colors ${isActive ? "text-primary border-b-2 border-primary" : ""}`}>Mis Pedidos</NavLink>}
         {isClient && <NavLink to="/direcciones" className={({ isActive }) => `hover:text-primary transition-colors ${isActive ? "text-primary border-b-2 border-primary" : ""}`}>Direcciones</NavLink>}
       </div>
@@ -107,49 +107,105 @@ function MainNav() {
         </button>
       </div>
 
-      {/* Mobile/Tablet Menu Overlay */}
+      {/* Mobile/Tablet: panel compacto (no fullscreen) */}
       {isOpen && (
-        <div className="fixed inset-0 z-[100] bg-slate-950 text-white transition-all fade-in lg:hidden h-screen overflow-hidden flex flex-col">
-          <header className="flex items-center justify-between px-4 h-14 border-b border-white/10">
-            <div className="flex items-center gap-2">
-              <span className="text-xl font-black tracking-tighter font-outfit uppercase">
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 z-[98] bg-slate-950/55 backdrop-blur-[2px] lg:hidden"
+            aria-label="Cerrar menú"
+            onClick={() => setIsOpen(false)}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Menú de navegación"
+            className="fixed right-3 top-[3.625rem] z-[100] flex w-[min(17.5rem,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-2xl border border-white/10 bg-slate-950 text-white shadow-2xl fade-in lg:hidden"
+          >
+            <header className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-3 py-2.5">
+              <span className="truncate text-sm font-black tracking-tighter font-outfit uppercase">
                 FOOD<span className="text-slate-500">STORE</span>
               </span>
-            </div>
-            <button onClick={() => setIsOpen(false)} className="p-2 transition-transform active:scale-90">
-              <X size={24} strokeWidth={2.5} />
-            </button>
-          </header>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="shrink-0 rounded-lg p-1.5 transition-transform active:scale-90 hover:bg-white/10"
+                aria-label="Cerrar menú"
+              >
+                <X size={18} strokeWidth={2.5} />
+              </button>
+            </header>
 
-          <div className="flex-1 flex flex-col p-6 overflow-y-auto">
-            {token && me && (
-              <div className="mb-8 border-b border-white/10 pb-6">
-                <p className="text-sm text-slate-400">Hola,</p>
-                <p className="text-2xl font-bold">{me.nombre}</p>
-              </div>
-            )}
-            
-            <div className="flex flex-col gap-6">
-              <Link className="text-[24px] font-bold transition-colors hover:text-accent" to="/" onClick={() => setIsOpen(false)}>Catálogo</Link>
-              <Link className="text-[24px] font-bold transition-colors hover:text-accent" to="/guia" onClick={() => setIsOpen(false)}>Guía</Link>
-              {isClient && <Link className="text-[24px] font-bold transition-colors hover:text-accent" to="/direcciones" onClick={() => setIsOpen(false)}>Direcciones</Link>}
-              {isClient && <Link className="text-[24px] font-bold transition-colors hover:text-accent" to="/mis-pedidos" onClick={() => setIsOpen(false)}>Mis pedidos</Link>}
-              {isAdmin && <Link className="text-[24px] font-bold text-warning transition-colors hover:text-warning/80" to="/admin" onClick={() => setIsOpen(false)}>Panel Administrador</Link>}
-            </div>
-
-            <div className="mt-auto pt-8">
-              {token ? (
-                <button onClick={() => { logout(); setIsOpen(false); }} className="w-full py-4 rounded-xl bg-white/10 font-bold text-lg hover:bg-white/20 transition-colors active:scale-95">
-                  Cerrar sesión
-                </button>
-              ) : (
-                <Link to="/login" onClick={() => setIsOpen(false)} className="block w-full text-center py-4 rounded-xl bg-accent text-white font-bold text-lg hover:bg-accent-hover transition-colors active:scale-95">
-                  Iniciar sesión
-                </Link>
+            <div className="max-h-[min(22rem,calc(100dvh-7rem))] overflow-y-auto overscroll-contain px-3 py-3">
+              {token && me && (
+                <div className="mb-3 border-b border-white/10 pb-3">
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-slate-400">Hola,</p>
+                  <p className="truncate text-base font-bold leading-snug">{me.nombre}</p>
+                </div>
               )}
+
+              <nav className="flex flex-col gap-0.5">
+                <Link
+                  className="rounded-lg px-2 py-2 text-sm font-bold transition-colors hover:bg-white/10 hover:text-accent"
+                  to="/"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Catálogo
+                </Link>
+                {isClient && (
+                  <Link
+                    className="rounded-lg px-2 py-2 text-sm font-bold transition-colors hover:bg-white/10 hover:text-accent"
+                    to="/direcciones"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Direcciones
+                  </Link>
+                )}
+                {isClient && (
+                  <Link
+                    className="rounded-lg px-2 py-2 text-sm font-bold transition-colors hover:bg-white/10 hover:text-accent"
+                    to="/mis-pedidos"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Mis pedidos
+                  </Link>
+                )}
+                {isAdmin && (
+                  <Link
+                    className="rounded-lg px-2 py-2 text-sm font-bold text-warning transition-colors hover:bg-white/10 hover:text-warning/90"
+                    to="/admin"
+                    onClick={() => setIsOpen(false)}
+                  >
+                    Panel Administrador
+                  </Link>
+                )}
+              </nav>
+
+              <div className="mt-3 border-t border-white/10 pt-3">
+                {token ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      logout();
+                      setIsOpen(false);
+                    }}
+                    className="w-full rounded-xl bg-white/10 py-2.5 text-center text-sm font-bold transition-colors hover:bg-white/15 active:scale-[0.99]"
+                  >
+                    Cerrar sesión
+                  </button>
+                ) : (
+                  <Link
+                    to="/login"
+                    onClick={() => setIsOpen(false)}
+                    className="block w-full rounded-xl bg-accent py-2.5 text-center text-sm font-bold text-white transition-colors hover:bg-accent-hover active:scale-[0.99]"
+                  >
+                    Iniciar sesión
+                  </Link>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        </>
       )}
     </nav>
   );
@@ -157,11 +213,11 @@ function MainNav() {
 
 function AppLayout() {
   return (
-    <div className="min-h-screen flex flex-col fade-in overflow-x-hidden">
+    <div className="min-h-screen flex flex-col fade-in max-md:overflow-x-clip md:overflow-x-visible">
       <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/95 shadow-sm">
         <MainNav />
       </header>
-      <main className="mx-auto w-full min-w-0 max-w-6xl flex-1 px-3 sm:px-4 md:px-6 py-2 sm:py-4 md:py-12">
+      <main className="mx-auto w-full min-w-0 max-w-6xl flex-1 max-md:max-w-[100vw] max-md:overflow-x-clip px-3 sm:px-4 md:px-6 py-2 sm:py-4 md:py-12 md:overflow-x-visible">
         <Outlet />
       </main>
       <footer className="bg-slate-950 text-white py-10 md:py-20 pb-[max(2.5rem,env(safe-area-inset-bottom))]">
@@ -182,8 +238,7 @@ function AppLayout() {
               <h4 className="text-[9px] md:text-xs font-black uppercase tracking-widest text-slate-500 mb-4 md:mb-8 font-outfit text-white">Navegación</h4>
               <ul className="space-y-2 md:space-y-4 text-xs md:text-sm text-slate-400 font-medium">
                 <li><Link to="/" className="hover:text-white transition-colors">Menú</Link></li>
-                <li><Link to="/guia" className="hover:text-white transition-colors">Privacidad</Link></li>
-                <li><Link to="/carrito" className="hover:text-white transition-colors">Términos</Link></li>
+                <li><Link to="/carrito" className="hover:text-white transition-colors">Carrito</Link></li>
               </ul>
             </div>
             <div className="text-center md:text-left">
@@ -209,25 +264,27 @@ export const router = createBrowserRouter([
     element: <AppLayout />,
     children: [
       { index: true, element: <CatalogoPage /> },
-      { path: "guia", element: <GuiaPage /> },
+      { path: "guia", element: <Navigate to="/" replace /> },
       { path: "carrito", element: <CarritoPage /> },
       { path: "checkout", element: <CheckoutPage /> },
       { path: "direcciones", element: <DireccionesPage /> },
       { path: "mis-pedidos", element: <MisPedidosPage /> },
       { path: "pedido/:id", element: <PedidoPage /> },
       { path: "login", element: <AuthLoginPage /> },
-      {
-        path: "admin",
-        element: <AdminLayout />,
-        children: [
-          { index: true, element: <AdminDashboardPage /> },
-          { path: "productos", element: <AdminProductosPage /> },
-          { path: "categorias", element: <AdminCategoriasPage /> },
-          { path: "ingredientes", element: <AdminIngredientesPage /> },
-          { path: "pedidos", element: <AdminPedidosPage /> },
-          { path: "pedidos/:id", element: <AdminPedidoDetallePage /> },
-        ],
-      },
+    ],
+  },
+  {
+    path: "/admin",
+    element: <AdminLayout />,
+    children: [
+      { index: true, element: <AdminDashboardPage /> },
+      { path: "productos", element: <AdminProductosPage /> },
+      { path: "categorias", element: <AdminCategoriasPage /> },
+      { path: "ingredientes", element: <AdminIngredientesPage /> },
+      { path: "mesas", element: <AdminMesasPage /> },
+      { path: "usuarios", element: <AdminUsuariosPage /> },
+      { path: "pedidos", element: <AdminPedidosPage /> },
+      { path: "pedidos/:id", element: <AdminPedidoDetallePage /> },
     ],
   },
 ]);

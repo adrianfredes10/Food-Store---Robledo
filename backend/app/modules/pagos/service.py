@@ -25,7 +25,7 @@ from app.modules.pagos.mercadopago_gateway import (
 )
 from app.modules.pagos.model import Pago
 from app.modules.pedidos.exceptions import PedidoNoEncontradoError
-from app.modules.pedidos.service import PedidoService
+from app.modules.pedidos.service import PedidoService, validar_mesa_retiro_antes_aprobar_pago
 
 if TYPE_CHECKING:
     from app.core.uow.unit_of_work import UnitOfWork
@@ -293,6 +293,7 @@ class PagoService:
                 raise WebhookPagoInvalidoError("pedido asociado al pago no existe")
             if pedido.estado == EstadoPedido.PENDIENTE:
                 _validar_monto_antes_de_confirmar(pedido.total, pago.monto, monto_reportado)
+                validar_mesa_retiro_antes_aprobar_pago(uow, pedido)
                 debe_confirmar_pedido = True
             # Si el pedido ya no está PENDIENTE: no confirmar (idempotente / evita doble confirmación).
 
@@ -394,8 +395,6 @@ class PagoService:
 
         pago_locked.mp_payment_id = info.payment_id
         pago_locked.mp_status = info.status
-        pago_locked.estado = _estado_pago_desde_mp_status(info.status)
-        uow.flush()
 
         if info.status == "approved":
             pedido_locked = uow.pedidos.get_by_id_for_update(pago_locked.pedido_id)
@@ -407,8 +406,16 @@ class PagoService:
                     pago_locked.monto,
                     info.transaction_amount,
                 )
+                validar_mesa_retiro_antes_aprobar_pago(uow, pedido_locked)
+
+        pago_locked.estado = _estado_pago_desde_mp_status(info.status)
+        uow.flush()
+
+        if info.status == "approved":
+            pedido_confirm = uow.pedidos.get_by_id_for_update(pago_locked.pedido_id)
+            if pedido_confirm is not None and pedido_confirm.estado == EstadoPedido.PENDIENTE:
                 pedido_svc = PedidoService()
-                pedido_svc.transicionar_estado(uow, pedido_locked.id, EstadoPedido.CONFIRMADO)  # type: ignore[arg-type]
+                pedido_svc.transicionar_estado(uow, pedido_confirm.id, EstadoPedido.CONFIRMADO)  # type: ignore[arg-type]
 
         return pago_locked
 

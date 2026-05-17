@@ -5,7 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, col, select
 
-from app.core.enums import EstadoPedido
+from app.core.enums import EstadoPedido, EstadoPago, TipoServicioPedido
 from app.core.repository.base_repository import BaseRepository
 from app.modules.pedidos.model import DetallePedido, HistorialEstadoPedido, Pedido
 
@@ -46,8 +46,18 @@ class PedidoRepository(BaseRepository[Pedido]):
         return Decimal(str(raw))
 
     def list_all_ordered_desc(self, offset: int, limit: int) -> list[Pedido]:
-        stmt = select(Pedido).order_by(col(Pedido.id).desc()).offset(offset).limit(limit)
+        stmt = (
+            select(Pedido)
+            .order_by(col(Pedido.id).desc())
+            .offset(offset)
+            .limit(limit)
+            .options(selectinload(Pedido.usuario))
+        )
         return list(self._session.exec(stmt).all())
+
+    def get_by_id_with_usuario(self, pedido_id: int) -> Pedido | None:
+        stmt = select(Pedido).where(Pedido.id == pedido_id).options(selectinload(Pedido.usuario))
+        return self._session.exec(stmt).first()
 
     def ventas_diarias_entregados(self, dias: int = 30) -> list[tuple[str, Decimal]]:
         since = datetime.now(timezone.utc) - timedelta(days=dias)
@@ -98,6 +108,40 @@ class PedidoRepository(BaseRepository[Pedido]):
     def get_by_id_y_usuario(self, pedido_id: int, usuario_id: int) -> Pedido | None:
         stmt = select(Pedido).where(Pedido.id == pedido_id, Pedido.usuario_id == usuario_id)
         return self._session.exec(stmt).first()
+
+    def map_ocupacion_por_numero_mesa_local(self) -> dict[int, Pedido]:
+        """Mesas ocupadas en salón: pedido en local, **pago aprobado**, en curso (no cancelado),
+        y sin marca de liberación por admin. Pendiente de pago no reserva mesa.
+
+        Si hay más de un pedido por número de mesa, se conserva el de **id** más alto.
+        """
+        from app.modules.pagos.model import Pago
+
+        estados_ocupan_salon = (
+            EstadoPedido.CONFIRMADO,
+            EstadoPedido.EN_PREP,
+            EstadoPedido.EN_CAMINO,
+            EstadoPedido.ENTREGADO,
+        )
+        stmt = (
+            select(Pedido)
+            .join(Pago, col(Pago.pedido_id) == col(Pedido.id))
+            .where(Pago.estado == EstadoPago.APROBADO)
+            .where(Pedido.tipo_servicio == TipoServicioPedido.RETIRO_EN_LOCAL)
+            .where(col(Pedido.numero_mesa).isnot(None))
+            .where(col(Pedido.estado).in_(estados_ocupan_salon))
+            .where(col(Pedido.mesa_liberada_por_admin).is_(False))
+            .options(selectinload(Pedido.usuario))
+            .order_by(col(Pedido.id).desc())
+            .distinct()
+        )
+        rows = list(self._session.exec(stmt).all())
+        out: dict[int, Pedido] = {}
+        for p in rows:
+            n = p.numero_mesa
+            if n is not None and n not in out:
+                out[n] = p
+        return out
 
     def listar_historial(self, pedido_id: int) -> list[HistorialEstadoPedido]:
         stmt = (

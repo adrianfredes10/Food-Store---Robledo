@@ -4,8 +4,10 @@ FoodStore — Descripción del sistema
 QUÉ HACE EL SISTEMA
 --------------------
 FoodStore es un e-commerce de comida gourmet: catálogo de productos
-personalizables, carrito, pedidos con máquina de estados, pagos online
-(vía Mercado Pago o mock en desarrollo) y direcciones de entrega.
+personalizables, carrito, pedidos con máquina de estados (incluye
+modalidad delivery y retiro en local con mesa), pagos online
+(vía Mercado Pago o mock en desarrollo), direcciones de entrega y
+catálogo de mesas para el salón (admin + disponibles en checkout).
 
 ACTORES (ROLES)
 ---------------
@@ -28,10 +30,13 @@ MÓDULOS PRINCIPALES
 -------------------
 - Auth: registro, login, refresh y logout con JWT.
 - Categorías, Ingredientes, Productos: catálogo y personalización.
-- Pedidos: creación, FSM de estados, historial, listados cliente/admin.
+- Pedidos: creación, FSM de estados, historial, listados cliente/admin,
+  tipo de servicio (delivery / retiro en local) y número de mesa cuando aplica.
 - Pagos: integración Mercado Pago (mock opcional), webhooks/IPN.
 - Direcciones: CRUD de direcciones de entrega del cliente.
-- Admin: APIs y UI para catálogo y gestión de pedidos.
+- Mesas: catálogo en admin, estado de ocupación, liberación; listado
+  de mesas disponibles para el cliente en checkout.
+- Admin: APIs y UI para catálogo, usuarios, mesas y gestión de pedidos.
 
 OBJETIVO DEL SISTEMA
 --------------------

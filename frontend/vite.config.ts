@@ -16,6 +16,12 @@ const apiProxy = {
   },
 } as const;
 
+/** Docker Desktop (sobre todo Windows): el FS montado no dispara inotify; hace falta polling. */
+const dockerWatch =
+  process.env.DOCKER_DEV === "1" || process.env.CHOKIDAR_USEPOLLING === "true"
+    ? { usePolling: true as const, interval: 1000 }
+    : undefined;
+
 export default defineConfig({
   plugins: [react()],
   resolve: {
@@ -25,6 +31,9 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    strictPort: true,
+    host: true,
+    ...(dockerWatch ? { watch: dockerWatch } : {}),
     proxy: apiProxy,
   },
   preview: {

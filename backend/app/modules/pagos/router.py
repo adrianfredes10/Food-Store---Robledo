@@ -6,7 +6,7 @@ from app.core.uow.unit_of_work import UnitOfWork
 from app.deps.uow import get_uow
 from app.deps.auth import get_current_user
 from app.deps.roles import ROL_ADMIN
-from app.modules.pedidos.exceptions import PedidoNoEncontradoError
+from app.modules.pedidos.exceptions import MesaOcupadaParaPedidoError, PedidoNoEncontradoError
 from app.modules.pagos.exceptions import (
     ErrorDominioPago,
     FormaPagoNoConfiguradaError,
@@ -56,6 +56,8 @@ def _crear_pago_tarjeta_core(
         )
     except PedidoNoEncontradoError as e:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+    except MesaOcupadaParaPedidoError as e:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail=str(e)) from e
     except ErrorDominioPago as e:
         raise _map_pago_error(e) from e
     assert pago.id is not None
@@ -121,6 +123,8 @@ def _procesar_webhook(data: dict[str, Any], uow: UnitOfWork) -> dict[str, Any]:
         _service.procesar_webhook_pago(uow, data)
     except ErrorDominioPago as e:
         raise _map_pago_error(e) from e
+    except MesaOcupadaParaPedidoError as e:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail=str(e)) from e
     return {"status": "ok"}
 
 

@@ -17,4 +17,6 @@ export {
   useIngredientesTodos,
 } from "./hooks/useAdminIngredientes";
 export { useAdminPedidoDetalle, useAdminPedidoTransicion, useAdminPedidosList } from "./hooks/useAdminPedidos";
+export { useAdminUsuariosList } from "./hooks/useAdminUsuarios";
+export { useAdminMesasCatalogo, useAdminMesasEstado, useAdminMesasMutations } from "./hooks/useAdminMesas";
 export { useActualizarProducto, useAdminProductoMutations } from "./hooks/useAdminProductos";

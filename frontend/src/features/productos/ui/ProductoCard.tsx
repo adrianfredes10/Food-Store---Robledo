@@ -66,10 +66,10 @@ export function ProductoCard({ producto }: Props) {
 
   return (
     <>
-      <article className="group relative flex flex-row md:flex-col min-w-0 rounded-xl md:rounded-2xl border border-border bg-white shadow-sm transition-all duration-200 hover:shadow-lg md:hover:-translate-y-1 p-3 md:p-0 gap-3 md:gap-0 cursor-pointer md:overflow-hidden">
+      <article className="group relative flex w-full max-w-full min-w-0 flex-row overflow-hidden md:flex-col rounded-xl md:rounded-2xl border border-border bg-white shadow-sm transition-all duration-200 hover:shadow-lg md:hover:-translate-y-1 p-2.5 sm:p-3 md:p-0 gap-2 sm:gap-3 md:gap-0 cursor-pointer md:overflow-hidden">
         
         {/* Imagen */}
-        <div className="relative isolate h-[80px] w-[80px] md:h-auto md:w-full shrink-0 aspect-square overflow-hidden rounded-lg md:rounded-none bg-slate-100">
+        <div className="relative isolate h-[72px] w-[72px] sm:h-[80px] sm:w-[80px] md:h-auto md:w-full shrink-0 aspect-square overflow-hidden rounded-lg md:rounded-none bg-slate-100">
           {mostrarImagen ? (
             <img
               src={imgSrc!}
@@ -102,9 +102,9 @@ export function ProductoCard({ producto }: Props) {
         </div>
 
         {/* Contenido */}
-        <div className="flex flex-1 flex-col justify-between py-0.5 md:p-4">
-          <div className="mb-2">
-            <h3 className="text-sm md:text-base font-bold text-primary group-hover:text-accent transition-colors line-clamp-1 md:line-clamp-2 md:leading-tight">
+        <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5 md:p-4">
+          <div className="mb-2 min-w-0">
+            <h3 className="break-words text-sm md:text-base font-bold text-primary group-hover:text-accent transition-colors line-clamp-2 md:line-clamp-2 md:leading-tight">
               {producto.nombre}
             </h3>
             {producto.descripcion && (
@@ -114,8 +114,8 @@ export function ProductoCard({ producto }: Props) {
             )}
           </div>
 
-          <div className="mt-auto flex flex-row items-center justify-between md:flex-col md:items-stretch md:gap-3">
-            <p className="text-sm md:text-xl font-bold text-accent md:text-primary tracking-tight">
+          <div className="mt-auto flex min-w-0 flex-row items-center justify-between gap-1 max-md:pr-0.5 md:flex-col md:items-stretch md:gap-3">
+            <p className="min-w-0 flex-1 truncate text-xs font-bold tabular-nums text-accent md:truncate-none md:flex-none md:text-xl md:text-primary md:tracking-tight leading-tight max-md:[overflow-wrap:anywhere] md:[overflow-wrap:normal]">
               {Number.isFinite(precio)
                 ? precio.toLocaleString("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 })
                 : "—"}
@@ -126,10 +126,10 @@ export function ProductoCard({ producto }: Props) {
                 type="button"
                 disabled={!puedeComprar}
                 onClick={handleAgregar}
-                className="flex h-8 w-8 md:h-11 md:w-full items-center justify-center rounded-full md:rounded-xl bg-primary text-white hover:bg-primary-hover transition-all active:scale-95 disabled:bg-slate-200 disabled:text-slate-400 md:shadow-sm"
+                className="flex h-9 w-9 shrink-0 touch-manipulation items-center justify-center rounded-full bg-primary text-white hover:bg-primary-hover transition-all active:scale-95 disabled:bg-slate-200 disabled:text-slate-400 sm:h-10 sm:w-10 md:h-11 md:w-full md:rounded-xl md:shadow-sm"
                 title="Agregar al carrito"
               >
-                <Plus size={16} className="md:hidden" />
+                <Plus size={16} strokeWidth={2.5} className="md:hidden" />
                 <span className="hidden md:inline font-bold text-sm">Agregar</span>
               </button>
             )}

@@ -5,7 +5,12 @@ from app.core.uow.unit_of_work import UnitOfWork
 from app.deps.uow import get_uow
 from app.deps.auth import get_current_user
 from app.deps.roles import ROL_ADMIN, ROL_PEDIDOS
-from app.modules.pedidos.exceptions import ErrorDominioPedido, PedidoNoEncontradoError
+from app.modules.pedidos.exceptions import (
+    ErrorDominioPedido,
+    MesaNoHabilitadaParaPedidoError,
+    MesaOcupadaParaPedidoError,
+    PedidoNoEncontradoError,
+)
 from app.modules.pedidos.schemas import (
     CancelarPedidoRequest,
     CrearPedidoRequest,
@@ -27,6 +32,10 @@ def _map_pedido_error(exc: ErrorDominioPedido) -> HTTPException:
     # si no existe mando 404, sino 400
     if isinstance(exc, PedidoNoEncontradoError):
         return HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, MesaOcupadaParaPedidoError):
+        return HTTPException(status.HTTP_409_CONFLICT, detail=str(exc))
+    if isinstance(exc, MesaNoHabilitadaParaPedidoError):
+        return HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc))
     return HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
 
@@ -133,6 +142,8 @@ def crear_pedido(
             usuario_id=uid,
             lineas=lineas,
             direccion_entrega_id=body.direccion_entrega_id,
+            tipo_servicio=body.tipo_servicio,
+            numero_mesa=body.numero_mesa,
             observaciones_cliente=body.observaciones_cliente,
             forma_pago_codigo=body.forma_pago_codigo,
             actor_usuario_id=uid,
@@ -145,6 +156,8 @@ def crear_pedido(
         estado=pedido.estado.value,
         total=pedido.total,
         moneda=pedido.moneda,
+        tipo_servicio=pedido.tipo_servicio.value,
+        numero_mesa=pedido.numero_mesa,
         costo_envio=pedido.costo_envio,
         forma_pago_codigo=pedido.forma_pago_codigo,
         dir_linea1=pedido.dir_linea1,
@@ -182,6 +195,8 @@ def cancelar_pedido_post(
         estado=actualizado.estado.value,
         total=actualizado.total,
         moneda=actualizado.moneda,
+        tipo_servicio=actualizado.tipo_servicio.value,
+        numero_mesa=actualizado.numero_mesa,
         direccion_entrega_id=actualizado.direccion_entrega_id,
         costo_envio=actualizado.costo_envio,
         forma_pago_codigo=actualizado.forma_pago_codigo,

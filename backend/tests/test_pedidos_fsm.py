@@ -6,9 +6,10 @@ from decimal import Decimal
 
 from sqlmodel import Session
 
-from app.core.enums import EstadoPedido
+from app.core.enums import EstadoPedido, TipoServicioPedido
 from app.core.security.password import hash_password
 from app.core.uow.unit_of_work import UnitOfWork
+from app.modules.mesas.model import Mesa
 from app.modules.pagos.model import FormaPago
 from app.modules.pedidos.service import PedidoService
 from app.modules.productos.model import Categoria, Producto
@@ -40,10 +41,19 @@ def test_fsm_confirmado_hasta_entregado(engine) -> None:
         )
         session.add(user)
         session.flush()
+        for n in range(1, 31):
+            session.add(Mesa(numero=n, activa=True))
+        session.flush()
         assert prod.id is not None and user.id is not None
 
         svc = PedidoService()
-        pedido = svc.crear_pedido(uow, usuario_id=user.id, lineas=[(prod.id, 2, None)])
+        pedido = svc.crear_pedido(
+            uow,
+            usuario_id=user.id,
+            lineas=[(prod.id, 2, None)],
+            tipo_servicio=TipoServicioPedido.RETIRO_EN_LOCAL,
+            numero_mesa=4,
+        )
         session.flush()
         assert pedido.id is not None
         assert pedido.estado == EstadoPedido.PENDIENTE
@@ -139,6 +149,72 @@ class TestCrearPedido:
         lineas = det.json()["detalles"]
         assert len(lineas) == 1
         assert Decimal(str(lineas[0]["precio_unitario_snapshot"])) == snap_antes
+
+    def test_crear_pedido_retiro_sin_costo_envio(self, client, headers_client, producto_seed):
+        precio = Decimal(str(producto_seed["precio"]))
+        r = client.post(
+            "/api/v1/pedidos",
+            headers=headers_client,
+            json={
+                "items": [{"producto_id": producto_seed["id"], "cantidad": 2}],
+                "tipo_servicio": "RETIRO_EN_LOCAL",
+                "numero_mesa": 12,
+            },
+        )
+        assert r.status_code == 201, r.text
+        j = r.json()
+        assert j["tipo_servicio"] == "RETIRO_EN_LOCAL"
+        assert j["numero_mesa"] == 12
+        assert Decimal(str(j["costo_envio"])) == Decimal("0")
+        assert Decimal(str(j["total"])) == precio * 2
+
+    def test_delivery_sin_direccion_falla(self, client, headers_client, producto_seed):
+        r = client.post(
+            "/api/v1/pedidos",
+            headers=headers_client,
+            json={
+                "items": [{"producto_id": producto_seed["id"], "cantidad": 1}],
+                "tipo_servicio": "DELIVERY",
+            },
+        )
+        assert r.status_code == 400
+
+    def test_delivery_con_mesa_falla(self, client, headers_client, producto_seed, direccion_seed):
+        r = client.post(
+            "/api/v1/pedidos",
+            headers=headers_client,
+            json={
+                "items": [{"producto_id": producto_seed["id"], "cantidad": 1}],
+                "tipo_servicio": "DELIVERY",
+                "direccion_entrega_id": direccion_seed["id"],
+                "numero_mesa": 5,
+            },
+        )
+        assert r.status_code == 400
+
+    def test_retiro_sin_mesa_falla(self, client, headers_client, producto_seed):
+        r = client.post(
+            "/api/v1/pedidos",
+            headers=headers_client,
+            json={
+                "items": [{"producto_id": producto_seed["id"], "cantidad": 1}],
+                "tipo_servicio": "RETIRO_EN_LOCAL",
+            },
+        )
+        assert r.status_code == 400
+
+    def test_retiro_con_direccion_falla(self, client, headers_client, producto_seed, direccion_seed):
+        r = client.post(
+            "/api/v1/pedidos",
+            headers=headers_client,
+            json={
+                "items": [{"producto_id": producto_seed["id"], "cantidad": 1}],
+                "tipo_servicio": "RETIRO_EN_LOCAL",
+                "numero_mesa": 2,
+                "direccion_entrega_id": direccion_seed["id"],
+            },
+        )
+        assert r.status_code == 400
 
 
 class TestFSMPedido:

@@ -8,9 +8,13 @@ export type CrearPedidoItem = {
   personalizacion?: number[];
 };
 
+export type TipoServicioPedidoDTO = "DELIVERY" | "RETIRO_EN_LOCAL";
+
 export type CrearPedidoBody = {
   items: CrearPedidoItem[];
+  tipo_servicio?: TipoServicioPedidoDTO;
   direccion_entrega_id?: number | null;
+  numero_mesa?: number | null;
   forma_pago_codigo?: string;
 };
 
@@ -19,6 +23,8 @@ export type PedidoCreadoResponse = {
   estado: string;
   total: string | number;
   moneda: string;
+  tipo_servicio: TipoServicioPedidoDTO;
+  numero_mesa?: number | null;
   costo_envio: string | number;
   forma_pago_codigo: string | null;
   dir_linea1?: string | null;
@@ -56,6 +62,10 @@ export interface PedidoListadoItem {
   id: number;
   estado: string;
   total: number;
+  tipo_servicio: TipoServicioPedidoDTO;
+  numero_mesa: number | null;
+  dir_alias: string | null;
+  dir_linea1: string | null;
   costo_envio: number;
   created_at: string;
   cantidad_items: number;
@@ -65,6 +75,8 @@ export interface PedidoDetalleCliente {
   id: number;
   estado: string;
   total: number;
+  tipo_servicio: TipoServicioPedidoDTO;
+  numero_mesa: number | null;
   costo_envio: number;
   forma_pago_codigo: string | null;
   dir_linea1: string | null;

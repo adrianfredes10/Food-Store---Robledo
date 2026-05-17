@@ -3,6 +3,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
+from app.core.enums import TipoServicioPedido
+
 
 class ItemPedidoCrear(BaseModel):
     producto_id: int = Field(ge=1)
@@ -12,7 +14,9 @@ class ItemPedidoCrear(BaseModel):
 
 class CrearPedidoRequest(BaseModel):
     items: list[ItemPedidoCrear] = Field(min_length=1)
+    tipo_servicio: TipoServicioPedido = TipoServicioPedido.DELIVERY
     direccion_entrega_id: int | None = Field(default=None, ge=1)
+    numero_mesa: int | None = Field(default=None, ge=1, le=999)
     observaciones_cliente: str | None = Field(default=None, max_length=500)
     forma_pago_codigo: str = "MERCADOPAGO"
 
@@ -22,6 +26,8 @@ class PedidoCreadoResponse(BaseModel):
     estado: str
     total: Decimal
     moneda: str
+    tipo_servicio: str
+    numero_mesa: int | None = None
     costo_envio: Decimal
     forma_pago_codigo: str | None
     dir_linea1: str | None = None
@@ -38,6 +44,8 @@ class PedidoResumenResponse(BaseModel):
     estado: str
     total: Decimal
     moneda: str
+    tipo_servicio: str
+    numero_mesa: int | None = None
     direccion_entrega_id: int | None = None
     costo_envio: Decimal
     forma_pago_codigo: str | None = None
@@ -82,6 +90,8 @@ class PedidoDetalleCliente(BaseModel):
     id: int
     estado: str
     total: Decimal
+    tipo_servicio: str
+    numero_mesa: int | None = None
     costo_envio: Decimal
     forma_pago_codigo: str | None
     dir_linea1: str | None
@@ -97,6 +107,10 @@ class PedidoListadoItem(BaseModel):
     id: int
     estado: str
     total: Decimal
+    tipo_servicio: str
+    numero_mesa: int | None = None
+    dir_alias: str | None = None
+    dir_linea1: str | None = None
     costo_envio: Decimal
     created_at: datetime
     cantidad_items: int

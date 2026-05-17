@@ -1,9 +1,35 @@
+import { useState } from "react";
 import { NavLink, Navigate, Outlet, Link } from "react-router-dom";
+import {
+  LayoutDashboard,
+  ShoppingBag,
+  Tag,
+  Leaf,
+  ClipboardList,
+  Menu,
+  PanelLeftClose,
+  LogOut,
+  Users,
+  Table2,
+} from "lucide-react";
 
 import { useAuthStore } from "@/shared/store/auth-store";
 import { useAuthHydrated, useMe } from "@/features/auth";
 
+const NAV_ITEMS = [
+  { label: "Dashboard", to: "/admin", icon: LayoutDashboard, end: true },
+  { label: "Productos", to: "/admin/productos", icon: ShoppingBag },
+  { label: "Categorías", to: "/admin/categorias", icon: Tag },
+  { label: "Ingredientes", to: "/admin/ingredientes", icon: Leaf },
+  { label: "Mesas y reservas", to: "/admin/mesas", icon: Table2 },
+  { label: "Usuarios", to: "/admin/usuarios", icon: Users },
+  { label: "Pedidos", to: "/admin/pedidos", icon: ClipboardList },
+] as const;
+
 export function AdminLayout() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
   const hydrated = useAuthHydrated();
   const token = useAuthStore((s) => s.access_token);
   const { data: me, isLoading } = useMe();
@@ -12,23 +38,27 @@ export function AdminLayout() {
     return (
       <div className="flex items-center justify-center py-20">
         <p className="text-sm font-bold uppercase tracking-widest text-muted animate-pulse">
-            Sincronizando...
+          Sincronizando...
         </p>
       </div>
     );
   }
-  
+
   if (!token) {
     return <Navigate to="/login" replace />;
   }
 
-  // verifico si el usuario tiene el rol ADMIN
   if (!me?.roles?.includes("ADMIN")) {
     return (
       <div className="mx-auto max-w-lg rounded-2xl border border-border bg-white p-8 text-center shadow-sm fade-in mt-12">
         <h1 className="mb-4 text-xl font-bold text-primary">Acceso Denegado</h1>
-        <p className="text-sm text-muted mb-8">Se requiere autorización de nivel administrador para este sector.</p>
-        <Link to="/" className="inline-block px-6 py-3 bg-primary text-white font-bold text-sm rounded-xl hover:bg-primary-hover transition-colors shadow-sm">
+        <p className="text-sm text-muted mb-8">
+          Se requiere autorización de nivel administrador para este sector.
+        </p>
+        <Link
+          to="/"
+          className="inline-block px-6 py-3 bg-primary text-white font-bold text-sm rounded-xl hover:bg-primary-hover transition-colors shadow-sm"
+        >
           Volver al Home
         </Link>
       </div>
@@ -36,52 +66,106 @@ export function AdminLayout() {
   }
 
   return (
-    <div className="fade-in min-w-0 px-2 md:px-0">
-      <header className="mb-6 md:mb-10 text-center md:text-left flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-        <div>
-            <h1 className="text-2xl md:text-4xl font-black text-primary font-outfit uppercase tracking-tight mb-2">
-            Panel de Control
-            </h1>
-            <p className="text-xs font-bold uppercase tracking-widest text-muted">Gestión integral de la plataforma</p>
+    <div className="flex min-h-screen max-md:overflow-x-clip bg-admin-shell md:overflow-x-visible">
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-20 bg-admin-overlay md:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      <aside
+        className={`
+      admin-sidebar z-30 flex min-h-0 flex-col transition-all duration-300
+      fixed inset-y-0 left-0 md:sticky md:top-0 md:h-screen md:max-h-screen
+      ${collapsed ? "w-16" : "w-56"}
+      ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
+    `}
+      >
+        <div className="flex items-center gap-3 px-4 py-5 border-b border-admin-sidebar-border">
+          <span className="text-admin-sidebar-brand text-xl font-black">FS</span>
+          {!collapsed && (
+            <span className="text-sm font-bold uppercase tracking-widest text-admin-sidebar-fg">
+              Admin
+            </span>
+          )}
         </div>
-        <button
-          onClick={() => {
-            const logout = useAuthStore.getState().logout;
-            logout();
-          }}
-          className="flex items-center justify-center gap-2 rounded-xl border border-border bg-white px-4 py-3 text-xs font-bold uppercase tracking-widest text-danger shadow-sm hover:bg-danger/10 transition-colors"
-        >
-          Cerrar Sesión
-        </button>
-      </header>
 
-      <nav className="mb-8 flex items-center gap-4 md:gap-8 overflow-x-auto pb-4 border-b border-border scrollbar-hide">
-        {[
-          { label: "Dashboard", to: "/admin" },
-          { label: "Catálogo", to: "/admin/productos" },
-          { label: "Categorías", to: "/admin/categorias" },
-          { label: "Ingredientes", to: "/admin/ingredientes" },
-          { label: "Pedidos", to: "/admin/pedidos" },
-        ].map((item) => (
-          <NavLink
-            key={item.to}
-            end={item.to === "/admin"}
-            to={item.to}
-            className={({ isActive }) =>
-              `text-xs font-bold uppercase tracking-widest pb-3 -mb-[17px] border-b-2 transition-all whitespace-nowrap ${
-                isActive 
-                  ? "text-primary border-primary" 
-                  : "text-muted border-transparent hover:text-primary hover:border-border"
-              }`
-            }
+        <nav className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain py-4 space-y-1 px-2">
+          {NAV_ITEMS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <NavLink
+                key={item.to}
+                to={item.to}
+                end={"end" in item && item.end === true}
+                onClick={() => setSidebarOpen(false)}
+                className={({ isActive }) =>
+                  `flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest
+             transition-all duration-150
+             ${
+               isActive
+                 ? "bg-admin-sidebar-highlight text-admin-sidebar-fg"
+                 : "text-admin-sidebar-muted hover:bg-admin-sidebar-subtle hover:text-admin-sidebar-fg"
+             }`
+                }
+              >
+                <Icon size={18} className="shrink-0" />
+                {!collapsed && <span>{item.label}</span>}
+              </NavLink>
+            );
+          })}
+        </nav>
+
+        <div className="hidden md:flex px-2 pb-4">
+          <button
+            type="button"
+            onClick={() => setCollapsed((c) => !c)}
+            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl
+                   text-admin-sidebar-muted hover:text-admin-sidebar-fg hover:bg-admin-sidebar-subtle transition-colors text-xs"
+            aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
           >
-            {item.label}
-          </NavLink>
-        ))}
-      </nav>
+            <PanelLeftClose size={16} className={collapsed ? "rotate-180" : ""} />
+            {!collapsed && <span className="uppercase tracking-widest">Colapsar</span>}
+          </button>
+        </div>
+      </aside>
 
-      <div className="max-w-full min-w-0 overflow-x-auto">
-        <Outlet />
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="admin-topbar sticky top-0 z-10 flex items-center gap-3 px-4 py-3">
+          <button
+            type="button"
+            className="md:hidden shrink-0 p-2 rounded-lg text-muted hover:text-primary hover:bg-bg-secondary/80 transition-colors"
+            onClick={() => setSidebarOpen(true)}
+            aria-label="Abrir menú"
+          >
+            <Menu size={20} />
+          </button>
+
+          <div className="flex min-w-0 flex-1 flex-col items-stretch justify-center md:items-center" />
+
+          <div className="flex shrink-0 items-center gap-3">
+            {me?.nombre && (
+              <span className="hidden sm:block text-xs font-bold text-muted uppercase tracking-widest">
+                {me.nombre}
+              </span>
+            )}
+            <button
+              type="button"
+              onClick={() => useAuthStore.getState().logout()}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border/80 bg-white/50
+                     text-xs font-bold uppercase tracking-widest text-danger
+                     hover:bg-danger/10 hover:border-danger/30 transition-colors"
+            >
+              <LogOut size={14} />
+              <span className="hidden sm:inline">Salir</span>
+            </button>
+          </div>
+        </header>
+
+        <main className="flex-1 min-w-0 max-w-full max-md:overflow-x-clip px-2 py-4 md:p-8 fade-in md:overflow-x-visible">
+          <Outlet />
+        </main>
       </div>
     </div>
   );

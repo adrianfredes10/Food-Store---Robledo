@@ -149,8 +149,8 @@ export function AdminCategoriasPage() {
   const estaVacio = filasOrdenadas.length === 0;
 
   return (
-    <div className="min-w-0 space-y-8 pb-16 sm:space-y-8 sm:pb-20">
-      <section className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between rounded-2xl border border-border bg-white p-6 shadow-sm md:p-8">
+    <div className="min-w-0 max-w-full space-y-8 pb-16 max-md:overflow-x-clip sm:space-y-8 sm:pb-20 md:overflow-x-visible">
+      <section className="flex min-w-0 max-w-full flex-col gap-4 rounded-2xl border border-border bg-white p-4 shadow-sm max-md:px-3 sm:flex-row sm:items-center sm:justify-between md:p-8">
         <h2 className="text-sm font-bold uppercase tracking-widest text-primary">
           Categorías
         </h2>
@@ -163,7 +163,7 @@ export function AdminCategoriasPage() {
         </button>
       </section>
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
+      <div className="max-w-full overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
         <div className="overflow-x-auto overscroll-x-contain">
           <table className="w-full min-w-[720px] border-collapse text-left">
             <thead className="bg-bg-secondary border-b border-border">
@@ -255,7 +255,7 @@ export function AdminCategoriasPage() {
           role="dialog"
           aria-modal="true"
         >
-          <div className="max-h-[min(90dvh,100vh)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-white p-6 shadow-xl sm:rounded-2xl md:p-8 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+          <div className="max-h-[min(90dvh,100vh)] w-full min-w-0 max-w-lg max-md:max-w-[calc(100vw-0.75rem)] overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-white p-4 shadow-xl max-md:mx-auto sm:rounded-2xl sm:p-6 md:p-8 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             <h3 className="text-sm font-bold uppercase tracking-widest text-primary border-b border-border pb-4 mb-6">
               {modalMode === "create" ? "Nueva categoría" : "Editar categoría"}
             </h3>
@@ -338,13 +338,14 @@ export function AdminCategoriasPage() {
             },
             onError: (err) => {
               toast.error(apiErrorDetail(err, "No se pudo eliminar la categoría."));
-              setDeleteTarget(null);
             },
           });
         }}
       >
         <p className="text-sm font-medium text-muted">
-          ¿Eliminar la categoría &apos;<span className="font-bold">{deleteTarget?.nombre}</span>&apos;? Esta acción no se puede deshacer.
+          ¿Eliminar la categoría &apos;<span className="font-bold">{deleteTarget?.nombre}</span>&apos;? Solo se
+          puede si no tiene subcategorías ni productos en el catálogo; si hay productos, eliminalos o reasignalos
+          desde Productos (no se reubican automáticamente).
         </p>
       </ConfirmDialog>
     </div>

@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { pedidosClienteApi } from "@/shared/api/endpoints/pedidos";
+import { invalidatePedidosEverywhere } from "@/shared/lib/queryCacheSync";
 
 export function useMisPedidos(params?: { page?: number; estado?: string }) {
   // cargo los pedidos del back
@@ -36,11 +37,8 @@ export function useCancelarPedido() {
   return useMutation({
     mutationFn: ({ id, motivo }: { id: number; motivo: string }) =>
       pedidosClienteApi.cancelar(id, motivo),
-    onSuccess: (_, { id }) => {
-      // esto recarga la lista despues de guardar
-      void qc.invalidateQueries({ queryKey: ["mis-pedidos"] });
-      void qc.invalidateQueries({ queryKey: ["pedido", id] });
-      void qc.invalidateQueries({ queryKey: ["pedido-historial", id] });
+    onSuccess: () => {
+      void invalidatePedidosEverywhere(qc);
     },
   });
 }

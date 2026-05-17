@@ -118,7 +118,20 @@ def headers_client(client_token: str) -> dict[str, str]:
 
 
 @pytest.fixture
-def producto_seed(client, headers_admin):
+def mesas_salon_activas(engine):
+    """Catálogo mínimo para pedidos RETIRO_EN_LOCAL (mesas 1–30 activas)."""
+    from sqlmodel import Session
+
+    from app.modules.mesas.model import Mesa
+
+    with Session(engine) as session:
+        for n in range(1, 31):
+            session.add(Mesa(numero=n, activa=True))
+        session.commit()
+
+
+@pytest.fixture
+def producto_seed(client, headers_admin, mesas_salon_activas):
     """Categoría + producto con stock=10 (nombre único para búsquedas)."""
     import uuid
 

@@ -7,8 +7,10 @@ from decimal import Decimal
 from fastapi.testclient import TestClient
 from sqlmodel import Session
 
+from app.core.enums import TipoServicioPedido
 from app.core.security.password import hash_password
 from app.core.uow.unit_of_work import UnitOfWork
+from app.modules.mesas.model import Mesa
 from app.modules.pagos.model import FormaPago
 from app.modules.pedidos.service import PedidoService
 from app.modules.productos.model import Categoria, Producto
@@ -39,7 +41,16 @@ def _seed_pedido_pendiente(engine) -> int:
         )
         session.add(user)
         session.flush()
-        pedido = PedidoService().crear_pedido(uow, usuario_id=user.id, lineas=[(prod.id, 1, None)])
+        for n in range(1, 31):
+            session.add(Mesa(numero=n, activa=True))
+        session.flush()
+        pedido = PedidoService().crear_pedido(
+            uow,
+            usuario_id=user.id,
+            lineas=[(prod.id, 1, None)],
+            tipo_servicio=TipoServicioPedido.RETIRO_EN_LOCAL,
+            numero_mesa=1,
+        )
         session.flush()
         pid = pedido.id
         session.commit()

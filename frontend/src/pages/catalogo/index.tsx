@@ -56,16 +56,16 @@ export function CatalogoPage() {
   };
 
   return (
-    <div className="min-w-0 space-y-6 md:space-y-12 pb-16 sm:pb-20">
+    <div className="min-w-0 max-w-full max-md:overflow-x-clip space-y-6 pb-16 max-md:px-0 sm:pb-20 md:space-y-12 md:overflow-x-visible">
       {/* Hero Section */}
-      <section className="relative overflow-hidden rounded-2xl md:rounded-[2.5rem] bg-slate-950 px-4 py-8 text-center sm:py-10 md:px-16 md:py-32 shadow-2xl">
+      <section className="relative max-w-full overflow-hidden rounded-2xl bg-slate-950 px-3 py-8 text-center shadow-2xl sm:px-4 md:rounded-[2.5rem] md:px-16 md:py-32 sm:py-10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black opacity-100"></div>
         <div className="relative z-10 mx-auto max-w-4xl flex flex-col md:flex-row items-center md:items-start text-left gap-6 md:gap-12">
             <div className="flex-1 text-center md:text-left">
               <span className="inline-block px-3 py-1 mb-4 md:mb-8 text-[9px] md:text-[10px] font-black tracking-[0.3em] text-slate-400 uppercase bg-white/5 rounded-lg border border-white/10 backdrop-blur-sm">
                   Exclusividad · Calidad · Tradición
               </span>
-              <h1 className="text-2xl sm:text-5xl md:text-7xl font-black text-white font-outfit leading-[1.15] tracking-tighter uppercase">
+              <h1 className="break-words text-2xl font-black uppercase leading-[1.15] tracking-tighter text-white sm:text-5xl font-outfit md:text-7xl">
                   CONCURSO GOURMET <br className="hidden md:block"/> <span className="text-slate-500">PARA PALADARES SELECTOS</span>
               </h1>
               <p className="mt-4 md:mt-8 text-[11px] md:text-xl text-slate-400 font-medium leading-relaxed max-w-2xl mx-auto md:mx-0 px-0 line-clamp-2 md:line-clamp-none">
@@ -90,21 +90,21 @@ export function CatalogoPage() {
             </div>
             
             {/* Filtros */}
-            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto overflow-x-auto pb-2 sm:pb-0">
-                <div className="relative min-w-[200px] shrink-0">
-                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+            <div className="flex w-full min-w-0 flex-col items-stretch gap-3 sm:flex-row sm:items-center md:w-auto">
+                <div className="relative min-w-0 flex-1 sm:max-w-md">
+                  <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 shrink-0 text-slate-400" />
                   <input
                     type="text"
                     placeholder="Buscar delicias..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="h-11 w-full rounded-xl border border-border bg-bg-secondary pl-10 pr-4 text-sm font-medium focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
+                    className="box-border h-11 w-full max-w-full rounded-xl border border-border bg-bg-secondary pl-10 pr-4 text-sm font-medium focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary"
                   />
                 </div>
                 <select
                   value={categoriaId}
                   onChange={(e) => setCategoriaId(e.target.value === "" ? "" : Number(e.target.value))}
-                  className="h-11 min-w-[160px] shrink-0 rounded-xl border border-border bg-bg-secondary px-4 text-sm font-medium focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary appearance-none"
+                  className="box-border h-11 w-full min-w-0 shrink-0 rounded-xl border border-border bg-bg-secondary px-4 text-sm font-medium focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary sm:w-auto sm:min-w-[10rem] appearance-none"
                 >
                   <option value="">Todas las categorías</option>
                   {categorias.map((c) => (
