@@ -8,7 +8,7 @@ import {
 } from "@/features/admin";
 import { apiErrorDetail } from "@/shared/api/apiErrorDetail";
 import type { CategoriaRead } from "@/shared/api/endpoints/categorias";
-import { ConfirmDialog, FormField, LoadingButton } from "@/shared/ui";
+import { ConfirmDialog, FormField, LoadingButton, ModalLayer, AdminConstrainedSelect } from "@/shared/ui";
 import { toast } from "sonner";
 
 type ModalMode = "closed" | "create" | "edit";
@@ -372,12 +372,13 @@ export function AdminCategoriasPage() {
       </div>
 
       {modalMode !== "closed" && (
-        <div
-          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4 fade-in"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="max-h-[min(90dvh,100vh)] w-full min-w-0 max-w-lg max-md:max-w-[calc(100vw-0.75rem)] overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-white p-4 shadow-xl max-md:mx-auto sm:rounded-2xl sm:p-6 md:p-8 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        <ModalLayer>
+          <div
+            className="fixed inset-0 z-[200] flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="fade-in max-h-[min(90dvh,100vh)] w-full min-w-0 max-w-lg max-md:max-w-[calc(100vw-1rem)] overflow-x-hidden overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-white p-4 shadow-xl max-md:mx-auto sm:rounded-2xl sm:p-6 md:p-8 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
             <h3 className="text-sm font-bold uppercase tracking-widest text-primary border-b border-border pb-4 mb-6">
               {modalTitulo}
             </h3>
@@ -392,19 +393,15 @@ export function AdminCategoriasPage() {
                 />
               </FormField>
               {!(modalMode === "create" && crearSoloRaiz) && (
-                <FormField label="Categoría padre">
-                  <select
-                    className="mt-1 w-full rounded-xl border border-border bg-bg-secondary px-4 py-3 text-sm font-bold text-primary focus:border-accent focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent transition-all"
+                <FormField label="Categoría padre" className="min-w-0">
+                  <AdminConstrainedSelect
                     value={form.parent_id}
-                    onChange={(e) => setForm((f) => ({ ...f, parent_id: e.target.value }))}
-                  >
-                    <option value="">Sin categoría padre (raíz)</option>
-                    {opcionesPadre.map((c) => (
-                      <option key={c.id} value={String(c.id)}>
-                        {c.nombre}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(v) => setForm((f) => ({ ...f, parent_id: v }))}
+                    options={[
+                      { value: "", label: "Sin categoría padre (raíz)" },
+                      ...opcionesPadre.map((c) => ({ value: String(c.id), label: c.nombre })),
+                    ]}
+                  />
                 </FormField>
               )}
               {modalMode === "create" && crearSoloRaiz && (
@@ -450,6 +447,7 @@ export function AdminCategoriasPage() {
             </div>
           </div>
         </div>
+        </ModalLayer>
       )}
 
       <ConfirmDialog

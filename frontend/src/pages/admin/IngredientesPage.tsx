@@ -9,7 +9,7 @@ import {
 } from "@/features/admin";
 import { apiErrorDetail } from "@/shared/api/apiErrorDetail";
 import type { IngredienteRead } from "@/shared/api/endpoints/ingredientes";
-import { ConfirmDialog, FormField, LoadingButton } from "@/shared/ui";
+import { ConfirmDialog, FormField, LoadingButton, ModalLayer } from "@/shared/ui";
 import { toast } from "sonner";
 
 function formatCantidadStock(v: string | number | undefined): string {
@@ -337,12 +337,13 @@ export function AdminIngredientesPage() {
       </div>
 
       {modalMode !== "closed" && (
-        <div
-          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4 fade-in"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="box-border max-h-[min(90dvh,100dvh)] w-full max-w-[min(32rem,calc(100vw-1rem))] overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-white p-4 shadow-xl sm:mx-auto sm:rounded-2xl sm:p-6 md:p-8 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        <ModalLayer>
+          <div
+            className="fixed inset-0 z-[200] flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="box-border max-h-[min(90dvh,100dvh)] w-full max-w-[min(32rem,calc(100vw-1rem))] overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-white p-4 shadow-xl sm:mx-auto sm:rounded-2xl sm:p-6 md:p-8 pb-[max(1.5rem,env(safe-area-inset-bottom))] fade-in">
             <h3 className="text-sm font-bold uppercase tracking-widest text-primary border-b border-border pb-4 mb-6">
               {modalMode === "create" ? "Nuevo ingrediente" : "Editar ingrediente"}
             </h3>
@@ -408,16 +409,18 @@ export function AdminIngredientesPage() {
             </div>
           </div>
         </div>
+        </ModalLayer>
       )}
 
       {inventarioTarget !== null && (
-        <div
-          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4 fade-in"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="inventario-ingrediente-title"
-        >
-          <div className="box-border max-h-[min(90dvh,100dvh)] w-full max-w-[min(32rem,calc(100vw-1rem))] overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-white p-4 shadow-xl sm:mx-auto sm:rounded-2xl sm:p-6 md:p-8 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+        <ModalLayer>
+          <div
+            className="fixed inset-0 z-[200] flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="inventario-ingrediente-title"
+          >
+            <div className="box-border max-h-[min(90dvh,100dvh)] w-full max-w-[min(32rem,calc(100vw-1rem))] overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-white p-4 shadow-xl sm:mx-auto sm:rounded-2xl sm:p-6 md:p-8 pb-[max(1.5rem,env(safe-area-inset-bottom))] fade-in">
             <h3
               id="inventario-ingrediente-title"
               className="text-sm font-bold uppercase tracking-widest text-primary border-b border-border pb-4 mb-4"
@@ -482,6 +485,7 @@ export function AdminIngredientesPage() {
             </div>
           </div>
         </div>
+        </ModalLayer>
       )}
 
       <ConfirmDialog

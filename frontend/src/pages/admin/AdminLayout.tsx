@@ -14,9 +14,10 @@ import {
   Eye,
 } from "lucide-react";
 
-import { userConfirmedLogout } from "@/shared/lib/confirm-logout";
+import { LOGOUT_CONFIRM_MESSAGE } from "@/shared/lib/confirm-logout";
 import { useAuthHydrated, useMe } from "@/features/auth";
 import { useAuthStore } from "@/shared/store/auth-store";
+import { ConfirmDialog } from "@/shared/ui";
 
 const NAV_ITEMS = [
   { label: "Dashboard", to: "/admin", icon: LayoutDashboard, end: true },
@@ -31,6 +32,7 @@ const NAV_ITEMS = [
 export function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
 
   const hydrated = useAuthHydrated();
   const token = useAuthStore((s) => s.access_token);
@@ -149,9 +151,7 @@ export function AdminLayout() {
           <div className="flex shrink-0 items-center gap-2 sm:gap-3">
             <Link
               to="/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 rounded-xl border border-border/80 bg-white/50 px-3 py-2 text-xs font-bold uppercase tracking-widest text-primary transition-colors hover:border-accent/40 hover:bg-accent/5"
+              className="flex items-center gap-2 rounded-xl border border-border/80 bg-white/50 px-2.5 py-2 text-[10px] font-bold uppercase tracking-widest text-primary transition-colors hover:border-accent/40 hover:bg-accent/5 sm:px-3 sm:text-xs"
             >
               <Eye size={16} className="shrink-0" />
               <span className="hidden sm:inline">Vista previa catálogo</span>
@@ -164,9 +164,7 @@ export function AdminLayout() {
             )}
             <button
               type="button"
-              onClick={() => {
-                if (userConfirmedLogout()) useAuthStore.getState().logout();
-              }}
+              onClick={() => setLogoutConfirmOpen(true)}
               className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border/80 bg-white/50
                      text-xs font-bold uppercase tracking-widest text-danger
                      hover:bg-danger/10 hover:border-danger/30 transition-colors"
@@ -181,6 +179,21 @@ export function AdminLayout() {
           <Outlet />
         </main>
       </div>
+
+      <ConfirmDialog
+        open={logoutConfirmOpen}
+        title="Cerrar sesión"
+        confirmLabel="Salir"
+        cancelLabel="Cancelar"
+        destructive
+        onCancel={() => setLogoutConfirmOpen(false)}
+        onConfirm={() => {
+          useAuthStore.getState().logout();
+          setLogoutConfirmOpen(false);
+        }}
+      >
+        <p className="text-sm font-medium text-slate-600">{LOGOUT_CONFIRM_MESSAGE}</p>
+      </ConfirmDialog>
     </div>
   );
 }

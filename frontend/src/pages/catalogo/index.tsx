@@ -58,23 +58,23 @@ export function CatalogoPage() {
   return (
     <div className="min-w-0 max-w-full max-md:overflow-x-clip space-y-6 pb-16 max-md:px-0 sm:pb-20 md:space-y-12 md:overflow-x-visible">
       {/* Hero Section */}
-      <section className="relative max-w-full overflow-hidden rounded-2xl bg-slate-950 px-3 py-8 text-center shadow-2xl sm:px-4 md:rounded-[2.5rem] md:px-16 md:py-32 sm:py-10">
+      <section className="relative max-w-full overflow-hidden rounded-2xl bg-slate-950 px-3 py-6 text-center shadow-2xl sm:px-4 sm:py-8 md:rounded-[2rem] md:px-12 md:py-20">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black opacity-100"></div>
-        <div className="relative z-10 mx-auto max-w-4xl flex flex-col md:flex-row items-center md:items-start text-left gap-6 md:gap-12">
+        <div className="relative z-10 mx-auto flex max-w-4xl flex-col items-center gap-4 text-left md:flex-row md:items-start md:gap-8">
             <div className="flex-1 text-center md:text-left">
-              <span className="inline-block px-3 py-1 mb-4 md:mb-8 text-[9px] md:text-[10px] font-black tracking-[0.3em] text-slate-400 uppercase bg-white/5 rounded-lg border border-white/10 backdrop-blur-sm">
+              <span className="mb-3 inline-block rounded-lg border border-white/10 bg-white/5 px-2.5 py-0.5 text-[8px] font-black uppercase tracking-[0.28em] text-slate-400 backdrop-blur-sm md:mb-5 md:px-3 md:py-1 md:text-[10px] md:tracking-[0.3em]">
                   Exclusividad · Calidad · Tradición
               </span>
-              <h1 className="break-words text-2xl font-black uppercase leading-[1.15] tracking-tighter text-white sm:text-5xl font-outfit md:text-7xl">
+              <h1 className="break-words font-outfit text-xl font-black uppercase leading-[1.12] tracking-tighter text-white sm:text-4xl md:text-5xl lg:text-6xl">
                   CONCURSO GOURMET <br className="hidden md:block"/> <span className="text-slate-500">PARA PALADARES SELECTOS</span>
               </h1>
-              <p className="mt-4 md:mt-8 text-[11px] md:text-xl text-slate-400 font-medium leading-relaxed max-w-2xl mx-auto md:mx-0 px-0 line-clamp-2 md:line-clamp-none">
+              <p className="mx-auto mt-3 max-w-2xl px-0 text-[10px] font-medium leading-relaxed text-slate-400 line-clamp-2 md:mx-0 md:mt-5 md:line-clamp-none md:text-lg">
                   Una curaduría de los ingredientes más finos y preparaciones artesanales, entregados con la distinción que su mesa merece.
               </p>
             </div>
             {/* Imagen decorativa a la derecha (Desktop) */}
-            <div className="hidden md:block w-72 h-72 rounded-full border-4 border-white/5 overflow-hidden filter grayscale opacity-40 hover:opacity-100 hover:grayscale-0 transition-all duration-700">
-               <div className="w-full h-full bg-cover bg-center" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1544148103-0773bf10d330?q=80&w=600&auto=format&fit=crop')" }}></div>
+            <div className="hidden h-56 w-56 overflow-hidden rounded-full border-4 border-white/5 opacity-40 grayscale filter transition-all duration-700 hover:grayscale-0 hover:opacity-100 md:block lg:h-64 lg:w-64">
+               <div className="h-full w-full bg-cover bg-center" style={{ backgroundImage: "url('https://images.unsplash.com/photo-1544148103-0773bf10d330?q=80&w=600&auto=format&fit=crop')" }}></div>
             </div>
         </div>
       </section>

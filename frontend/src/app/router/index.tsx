@@ -1,4 +1,11 @@
-import { createBrowserRouter, Link, NavLink, Outlet, useLocation, Navigate } from "react-router-dom";
+import {
+  createBrowserRouter,
+  Link,
+  NavLink,
+  Outlet,
+  useLocation,
+  Navigate,
+} from "react-router-dom";
 
 import { useMe } from "@/features/auth";
 import { AuthLoginPage } from "@/pages/auth";
@@ -17,8 +24,9 @@ import { CheckoutPage } from "@/pages/checkout";
 import { DireccionesPage } from "@/pages/direcciones";
 import { MisPedidosPage } from "@/pages/mis-pedidos";
 import { PedidoPage } from "@/pages/pedido";
-import { userConfirmedLogout } from "@/shared/lib/confirm-logout";
+import { LOGOUT_CONFIRM_MESSAGE } from "@/shared/lib/confirm-logout";
 import { useAuthStore } from "@/shared/store/auth-store";
+import { ConfirmDialog } from "@/shared/ui";
 import { useCartStore } from "@/shared/store/cart-store";
 
 import { ShoppingBag, User, Menu, X } from "lucide-react";
@@ -32,6 +40,7 @@ function MainNav() {
   const isAdmin = Boolean(token && me?.roles?.includes("ADMIN"));
   const isClient = Boolean(token && !isAdmin);
   const [isOpen, setIsOpen] = useState(false);
+  const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
   const cartItems = useCartStore((s) => s.items);
   const totalItems = cartItems.reduce((acc, item) => acc + item.cantidad, 0);
 
@@ -100,9 +109,7 @@ function MainNav() {
           <button 
             type="button" 
             title="Cerrar sesión"
-            onClick={() => {
-              if (userConfirmedLogout()) logout();
-            }} 
+            onClick={() => setLogoutConfirmOpen(true)} 
             className="hidden lg:flex items-center p-2 text-muted hover:bg-danger/10 hover:text-danger rounded-xl transition-colors active:scale-95"
           >
              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-log-out"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
@@ -193,12 +200,7 @@ function MainNav() {
                 {token ? (
                   <button
                     type="button"
-                    onClick={() => {
-                      if (userConfirmedLogout()) {
-                        logout();
-                        setIsOpen(false);
-                      }
-                    }}
+                    onClick={() => setLogoutConfirmOpen(true)}
                     className="w-full rounded-xl bg-white/10 py-2.5 text-center text-sm font-bold transition-colors hover:bg-white/15 active:scale-[0.99]"
                   >
                     Cerrar sesión
@@ -217,24 +219,49 @@ function MainNav() {
           </div>
         </>
       )}
+
+      <ConfirmDialog
+        open={logoutConfirmOpen}
+        title="Cerrar sesión"
+        confirmLabel="Cerrar sesión"
+        cancelLabel="Cancelar"
+        destructive
+        onCancel={() => setLogoutConfirmOpen(false)}
+        onConfirm={() => {
+          logout();
+          setLogoutConfirmOpen(false);
+          setIsOpen(false);
+        }}
+      >
+        <p className="text-sm font-medium text-slate-600">{LOGOUT_CONFIRM_MESSAGE}</p>
+      </ConfirmDialog>
     </nav>
   );
 }
 
 function AppLayout() {
+  const location = useLocation();
+  const isLogin = location.pathname === "/login";
   const token = useAuthStore((s) => s.access_token);
   const { data: me } = useMe();
   const isAdmin = Boolean(token && me?.roles?.includes("ADMIN"));
   const isClient = Boolean(token && !isAdmin);
 
   return (
-    <div className="min-h-screen flex flex-col fade-in max-md:overflow-x-clip md:overflow-x-visible">
-      <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/95 shadow-sm">
+    <div className="flex min-h-[100dvh] flex-col fade-in max-md:overflow-x-clip md:overflow-x-visible">
+      <header className="sticky top-0 z-50 shrink-0 border-b border-slate-100 bg-white/95 shadow-sm">
         <MainNav />
       </header>
-      <main className="mx-auto w-full min-w-0 max-w-6xl flex-1 max-md:max-w-[100vw] max-md:overflow-x-clip px-3 sm:px-4 md:px-6 py-2 sm:py-4 md:py-12 md:overflow-x-visible">
+      <main
+        className={
+          isLogin
+            ? "mx-auto flex w-full min-h-0 min-w-0 max-w-6xl flex-1 flex-col overflow-x-clip overflow-y-auto px-3 py-2 sm:px-4"
+            : "mx-auto w-full min-w-0 max-w-6xl flex-1 max-md:max-w-[100vw] max-md:overflow-x-clip px-3 sm:px-4 md:px-6 py-2 sm:py-4 md:py-12 md:overflow-x-visible"
+        }
+      >
         <Outlet />
       </main>
+      {!isLogin && (
       <footer className="bg-slate-950 text-white py-10 md:py-20 pb-[max(2.5rem,env(safe-area-inset-bottom))]">
         <div className="mx-auto max-w-6xl px-4 md:px-6 grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-16">
           <div className="md:col-span-2">
@@ -271,6 +298,7 @@ function AppLayout() {
           © {new Date().getFullYear()} FoodStore HQ. All rights reserved. Premium Service.
         </div>
       </footer>
+      )}
     </div>
   );
 }

@@ -36,30 +36,33 @@ export function AuthLoginPage() {
     });
   };
 
+  const inputClass =
+    "mt-1 w-full rounded-xl border border-border bg-bg-secondary px-3 py-2 text-sm font-bold text-primary transition-all focus:border-accent focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent sm:px-4 sm:py-2.5 md:py-3";
+
   return (
-    <div className="flex min-h-[calc(100vh-100px)] w-full items-center justify-center p-4">
-      <div className="w-full max-w-sm fade-in">
-        <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent shadow-sm">
-            <ShoppingBag size={24} className="text-white" />
+    <div className="flex min-h-0 w-full flex-1 flex-col justify-center pb-[max(0.5rem,env(safe-area-inset-bottom))]">
+      <div className="mx-auto w-full max-w-sm shrink-0 fade-in">
+        <div className="mb-4 flex flex-col items-center text-center sm:mb-5">
+          <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-xl bg-accent shadow-sm sm:mb-4 sm:h-12 sm:w-12 sm:rounded-2xl">
+            <ShoppingBag className="h-5 w-5 text-white sm:h-6 sm:w-6" strokeWidth={2.2} />
           </div>
-          <h1 className="font-outfit text-2xl font-black tracking-tight text-primary md:text-3xl">
+          <h1 className="font-outfit text-xl font-black tracking-tight text-primary sm:text-2xl md:text-3xl">
             {mode === "login" ? "Te damos la bienvenida" : "Creá tu cuenta"}
           </h1>
-          <p className="mt-2 text-sm font-bold tracking-widest text-muted uppercase">
+          <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-muted sm:mt-2 sm:text-sm">
             {mode === "login" ? "Iniciá sesión para continuar" : "Completá tus datos"}
           </p>
         </div>
 
-        <div className="rounded-2xl border border-border bg-white p-6 sm:p-8 shadow-sm">
-          <form className="space-y-4" onSubmit={handleSubmit}>
+        <div className="rounded-2xl border border-border bg-white p-4 shadow-sm sm:p-6 md:p-8">
+          <form className="space-y-3 sm:space-y-4" onSubmit={handleSubmit}>
             {mode === "register" && (
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-2 sm:gap-4">
                 <FormField label="Nombre">
                   <input
                     required
                     placeholder="Tu nombre"
-                    className="mt-1 w-full rounded-xl border border-border bg-bg-secondary px-4 py-3 text-sm font-bold text-primary transition-all focus:border-accent focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent"
+                    className={inputClass}
                     value={nombre}
                     onChange={(e) => setNombre(e.target.value)}
                   />
@@ -67,7 +70,7 @@ export function AuthLoginPage() {
                 <FormField label="Apellido">
                   <input
                     placeholder="Tu apellido"
-                    className="mt-1 w-full rounded-xl border border-border bg-bg-secondary px-4 py-3 text-sm font-bold text-primary transition-all focus:border-accent focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent"
+                    className={inputClass}
                     value={apellido}
                     onChange={(e) => setApellido(e.target.value)}
                   />
@@ -80,7 +83,7 @@ export function AuthLoginPage() {
                 required
                 type="email"
                 placeholder="usuario@foodstore.com"
-                className="mt-1 w-full rounded-xl border border-border bg-bg-secondary px-4 py-3 text-sm font-bold text-primary transition-all focus:border-accent focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent"
+                className={inputClass}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -92,24 +95,24 @@ export function AuthLoginPage() {
                 type="password"
                 minLength={mode === "register" ? 8 : 1}
                 placeholder="••••••••"
-                className="mt-1 w-full rounded-xl border border-border bg-bg-secondary px-4 py-3 text-sm font-bold text-primary transition-all focus:border-accent focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent"
+                className={inputClass}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
             </FormField>
 
-            <div className="pt-2">
-                <LoadingButton
+            <div className="pt-1 sm:pt-2">
+              <LoadingButton
                 type="submit"
                 isLoading={busy}
-                className="w-full rounded-xl bg-primary py-3.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-primary-hover active:scale-95"
-                >
+                className="w-full rounded-xl bg-primary py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:bg-primary-hover active:scale-[0.99] sm:py-3.5"
+              >
                 {mode === "login" ? "Iniciar Sesión" : "Crear Cuenta"}
-                </LoadingButton>
+              </LoadingButton>
             </div>
           </form>
 
-          <div className="mt-8 text-center text-sm font-medium text-muted border-t border-border pt-6">
+          <div className="mt-4 border-t border-border pt-4 text-center text-xs font-medium text-muted sm:mt-6 sm:pt-6 sm:text-sm">
             {mode === "login" ? "¿Primera vez acá? " : "¿Ya tenés una cuenta? "}
             <button
               type="button"
@@ -121,18 +124,15 @@ export function AuthLoginPage() {
           </div>
 
           {mode === "login" && (
-            <div className="mt-6 rounded-xl border border-border bg-bg-secondary p-4 text-center text-xs">
-              <p className="mb-2 font-bold uppercase tracking-widest text-muted">
-                Credenciales de prueba Demo
+            <div className="mt-3 rounded-xl border border-border bg-bg-secondary px-3 py-2 text-center sm:mt-4 sm:p-3">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-muted sm:text-[10px]">
+                Credenciales demo
               </p>
-              <div className="flex flex-col gap-1 text-primary">
-                <p>
-                  User: <span className="font-mono font-bold">admin@foodstore.com</span>
-                </p>
-                <p>
-                  Pass: <span className="font-mono font-bold">Admin1234!</span>
-                </p>
-              </div>
+              <p className="mt-1 break-all font-mono text-[10px] font-bold leading-snug text-primary sm:text-xs">
+                <span className="font-sans font-medium text-muted">User </span>admin@foodstore.com
+                <span className="mx-1 text-border">·</span>
+                <span className="font-sans font-medium text-muted">Pass </span>Admin1234!
+              </p>
             </div>
           )}
         </div>

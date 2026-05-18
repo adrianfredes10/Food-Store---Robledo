@@ -1,9 +1,4 @@
-/** Mensaje y acción reutilizable para cerrar sesión desde la UI. */
+/** Texto del diálogo in-app de confirmación de cierre de sesión (no usar `window.confirm`). */
 
 export const LOGOUT_CONFIRM_MESSAGE =
   "¿Seguro que querés cerrar sesión? Se borrará la sesión en este dispositivo.";
-
-export function userConfirmedLogout(): boolean {
-  if (typeof window === "undefined") return true;
-  return window.confirm(LOGOUT_CONFIRM_MESSAGE);
-}

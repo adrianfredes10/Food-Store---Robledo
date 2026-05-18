@@ -50,13 +50,14 @@ export function buildCategoriaArbol(flat: CategoriaRead[]): CategoriaNodo[] {
   return roots;
 }
 
-/** Para selects con indentación por nivel. */
+/** Para selects con indentación compacta (› por nivel) para que quepa mejor en móvil. */
 export function aplanarCategoriasParaSelect(
   nodos: CategoriaNodo[],
   nivel = 0,
 ): { id: number; label: string }[] {
   const out: { id: number; label: string }[] = [];
-  const pad = "  ".repeat(nivel);
+  const depth = Math.min(nivel, 6);
+  const pad = nivel > 0 ? `${"›".repeat(depth)} ` : "";
   for (const n of nodos) {
     out.push({ id: n.id, label: pad + n.nombre });
     out.push(...aplanarCategoriasParaSelect(n.hijos, nivel + 1));
