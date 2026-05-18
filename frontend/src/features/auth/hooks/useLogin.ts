@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
 import { getMe, loginRequest, type LoginBody } from "@/shared/api/endpoints/auth";
@@ -8,6 +8,7 @@ import { useAuthStore } from "@/shared/store/auth-store";
 
 export function useLogin() {
   const navigate = useNavigate();
+  const location = useLocation();
   const qc = useQueryClient();
   const setTokens = useAuthStore((s) => s.setTokens);
   const setUser = useAuthStore((s) => s.setUser);
@@ -17,22 +18,32 @@ export function useLogin() {
     onSuccess: async (data) => {
       // guardo los tokens y traigo el perfil del usuario
       setTokens(data.access_token, data.refresh_token);
+      let profile: Awaited<ReturnType<typeof getMe>> | null = null;
       try {
-        const me = await getMe();
+        profile = await getMe();
         setUser({
-          id: me.id,
-          nombre: me.nombre,
-          apellido: me.apellido,
-          email: me.email,
-          roles: me.roles,
-          created_at: me.created_at,
+          id: profile.id,
+          nombre: profile.nombre,
+          apellido: profile.apellido,
+          email: profile.email,
+          roles: profile.roles,
+          created_at: profile.created_at,
         });
       } catch {
         setUser(null);
       }
       void qc.invalidateQueries({ queryKey: ["me"] });
       toast.success("Sesión iniciada");
-      navigate("/", { replace: true });
+
+      if (profile?.roles?.includes("ADMIN")) {
+        navigate("/admin", { replace: true });
+        return;
+      }
+
+      const from = (location.state as { from?: string } | null)?.from;
+      const target =
+        typeof from === "string" && from.length > 0 && !from.startsWith("/login") ? from : "/";
+      navigate(target, { replace: true });
     },
     onError: (err) => {
       // si falla muestro el error en un toast

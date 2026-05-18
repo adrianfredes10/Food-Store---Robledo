@@ -132,7 +132,7 @@ def mesas_salon_activas(engine):
 
 @pytest.fixture
 def producto_seed(client, headers_admin, mesas_salon_activas):
-    """Categoría + producto con stock=10 (nombre único para búsquedas)."""
+    """Categoría + producto (nombre único para búsquedas)."""
     import uuid
 
     suf = uuid.uuid4().hex[:8]
@@ -152,7 +152,6 @@ def producto_seed(client, headers_admin, mesas_salon_activas):
             "nombre": nombre,
             "descripcion": "pytest",
             "precio": "25.00",
-            "stock_cantidad": 10,
             "disponible": True,
             "activo": True,
             "ingredientes": [],

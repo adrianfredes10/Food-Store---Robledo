@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check } from "lucide-react";
 
 import {
   aplanarCategoriasParaSelect,
@@ -70,7 +69,6 @@ type EditForm = {
   descripcion: string;
   categoria_id: string;
   disponible: boolean;
-  stock_cantidad: string;
   ingredientes_ids: number[];
 };
 
@@ -80,7 +78,6 @@ const EDIT_FORM_INICIAL: EditForm = {
   descripcion: "",
   categoria_id: "",
   disponible: true,
-  stock_cantidad: "0",
   ingredientes_ids: [],
 };
 
@@ -89,11 +86,10 @@ export function AdminProductosPage() {
   const { data, isLoading } = useProductos({ page: 1, size: 100 });
   const { data: categorias = [], isLoading: categoriasLoading } = useCategorias();
   const { data: todosIngredientes = [] } = useIngredientesTodos();
-  const { crear, patch, stock, eliminar } = useAdminProductoMutations();
+  const { crear, patch, eliminar } = useAdminProductoMutations();
   const actualizarProducto = useActualizarProducto();
 
   const [deleteId, setDeleteId] = useState<number | null>(null);
-  const [stockDraft, setStockDraft] = useState<Record<number, string>>({});
 
   // ── Estado del modal de edición ──────────────────────────────────────────
   const [editProduct, setEditProduct] = useState<ProductoListadoItemDTO | null>(null);
@@ -117,7 +113,7 @@ export function AdminProductosPage() {
     categoria_id: "",
     nombre: "",
     precio: "",
-    stock_cantidad: "0",
+    descripcion: "",
     ingredientes_ids: [] as number[],
   });
 
@@ -145,7 +141,6 @@ export function AdminProductosPage() {
       descripcion: p.descripcion ?? "",
       categoria_id: String(p.categoria_id),
       disponible: p.disponible,
-      stock_cantidad: String(p.stock_cantidad),
       ingredientes_ids: (p.ingredientes ?? []).map((i) => i.ingrediente_id),
     });
   }
@@ -216,15 +211,6 @@ export function AdminProductosPage() {
       },
       {
         onSuccess: () => {
-          // esto recarga la lista despues de guardar
-          const newStock = Number(editForm.stock_cantidad);
-          if (
-            Number.isFinite(newStock) &&
-            newStock >= 0 &&
-            newStock !== editProduct.stock_cantidad
-          ) {
-            stock.mutate({ id: editProduct.id, stock_cantidad: newStock });
-          }
           toast.success("Producto actualizado.");
           cerrarEditar();
         },
@@ -259,7 +245,6 @@ export function AdminProductosPage() {
             e.preventDefault();
             const categoria_id = Number(form.categoria_id);
             const precio = Number(form.precio);
-            const stock_cantidad = Number(form.stock_cantidad);
             if (!form.nombre.trim()) {
               toast.error("Indicá el nombre del producto.");
               return;
@@ -282,19 +267,19 @@ export function AdminProductosPage() {
               categoria_id: Number.isFinite(categoria_id) && categoria_id >= 1 ? categoria_id : 1,
               nombre: form.nombre.trim(),
               precio,
-              stock_cantidad: Number.isFinite(stock_cantidad) && stock_cantidad >= 0 ? stock_cantidad : 0,
+              descripcion: form.descripcion.trim() || null,
               ingredientes: ingredientesPayload as unknown[],
             });
             setForm({
               categoria_id: form.categoria_id,
               nombre: "",
               precio: "",
-              stock_cantidad: "0",
+              descripcion: "",
               ingredientes_ids: [],
             });
           }}
         >
-          <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <FormField label="Categoría" className="lg:col-span-1">
             <select
               className="mt-1 w-full bg-bg-secondary border border-border rounded-xl px-4 py-3 text-sm font-bold text-primary focus:border-accent focus:bg-white outline-none transition-all"
@@ -333,16 +318,6 @@ export function AdminProductosPage() {
             />
           </FormField>
 
-          <FormField label="Stock inicial" className="lg:col-span-1">
-            <input
-              type="number"
-              min="0"
-              className="mt-1 w-full bg-bg-secondary border border-border rounded-xl px-4 py-3 text-sm font-bold text-primary focus:border-accent focus:bg-white outline-none transition-all"
-              value={form.stock_cantidad}
-              onChange={(e) => setForm((f) => ({ ...f, stock_cantidad: e.target.value }))}
-            />
-          </FormField>
-
           <div className="lg:col-span-1">
             <LoadingButton
               type="submit"
@@ -353,6 +328,21 @@ export function AdminProductosPage() {
             </LoadingButton>
           </div>
           </div>
+
+        <p className="text-xs font-medium text-muted -mt-2">
+          <strong>Descripción:</strong> se muestra en la tienda y, si tenés imagen automática (Groq), ayuda a generar
+          una foto acorde al plato.
+        </p>
+        <FormField label="Descripción (opcional)">
+          <textarea
+            className="mt-1 min-h-[88px] w-full rounded-xl border border-border bg-bg-secondary px-4 py-3 text-sm font-bold text-primary focus:border-accent focus:bg-white outline-none transition-all resize-y"
+            maxLength={10000}
+            rows={3}
+            placeholder="Ej: medallon de carne, cheddar, panceta crocante y salsa BBQ ahumada."
+            value={form.descripcion}
+            onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))}
+          />
+        </FormField>
 
         <div className="border-t border-border pt-6">
           <p className="text-xs font-bold uppercase tracking-widest text-muted mb-3">Ingredientes (opcional)</p>
@@ -377,7 +367,6 @@ export function AdminProductosPage() {
                 <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-muted">Categoría</th>
                 <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-muted">Precio</th>
                 <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-muted">Disponibilidad</th>
-                <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-muted">Stock</th>
                 <th className="px-4 py-4 text-right text-xs font-bold uppercase tracking-widest text-muted">Acciones</th>
               </tr>
             </thead>
@@ -408,27 +397,6 @@ export function AdminProductosPage() {
                     >
                       {p.disponible ? "Activo" : "Pausado"}
                     </button>
-                  </td>
-                  <td className="px-4 py-4">
-                    <div className="flex items-center gap-2">
-                      <input
-                        className="w-20 bg-white border border-border rounded-lg px-3 py-2 text-sm font-bold text-primary focus:border-accent outline-none transition-all shadow-sm"
-                        value={stockDraft[p.id] ?? String(p.stock_cantidad)}
-                        onChange={(e) => setStockDraft((d) => ({ ...d, [p.id]: e.target.value }))}
-                      />
-                      {stockDraft[p.id] !== undefined && stockDraft[p.id] !== String(p.stock_cantidad) && (
-                        <button
-                          type="button"
-                          className="p-2 rounded-lg bg-accent text-white hover:bg-accent-hover transition-colors shadow-sm"
-                          onClick={() => {
-                            const n = Number(stockDraft[p.id] ?? p.stock_cantidad);
-                            if (Number.isFinite(n) && n >= 0) stock.mutate({ id: p.id, stock_cantidad: n });
-                          }}
-                        >
-                          <Check size={16} />
-                        </button>
-                      )}
-                    </div>
                   </td>
                   <td className="px-4 py-4 text-right">
                     <div className="flex justify-end gap-4">
@@ -514,17 +482,6 @@ export function AdminProductosPage() {
                     </option>
                   ))}
                 </select>
-              </FormField>
-
-              {/* Stock */}
-              <FormField label="Stock">
-                <input
-                  type="number"
-                  min="0"
-                  className="mt-1 w-full rounded-xl border border-border bg-bg-secondary px-4 py-3 text-sm font-bold text-primary focus:border-accent focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent transition-all"
-                  value={editForm.stock_cantidad}
-                  onChange={(e) => setEditForm((f) => ({ ...f, stock_cantidad: e.target.value }))}
-                />
               </FormField>
 
               {/* Disponible */}

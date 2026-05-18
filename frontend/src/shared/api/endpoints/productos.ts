@@ -20,7 +20,6 @@ export type ProductoListadoItemDTO = {
   descripcion: string | null;
   precio: string | number;
   disponible: boolean;
-  stock_cantidad: number;
   sku: string | null;
   imagen_url: string | null;
   /** Si el backend lo envía en el listado: habilita el flujo de personalización en la tarjeta. */
@@ -49,7 +48,6 @@ export type ProductoCreateBody = {
   imagen_url?: string | null;
   activo?: boolean;
   disponible?: boolean;
-  stock_cantidad?: number;
   ingredientes?: unknown[];
 };
 
@@ -63,7 +61,6 @@ export type ProductoReadDTO = {
   imagen_url: string | null;
   activo: boolean;
   disponible: boolean;
-  stock_cantidad: number;
   ingredientes: unknown[];
 };
 
@@ -86,13 +83,6 @@ export async function createProducto(body: ProductoCreateBody): Promise<Producto
 
 export async function patchProducto(id: number, body: ProductoPatchBody): Promise<ProductoReadDTO> {
   const { data } = await apiClient.patch<ProductoReadDTO>(`${PRODUCTOS_LIST_PATH}/${id}`, body);
-  return data;
-}
-
-export async function patchProductoStock(id: number, stock_cantidad: number): Promise<ProductoReadDTO> {
-  const { data } = await apiClient.patch<ProductoReadDTO>(`${PRODUCTOS_LIST_PATH}/${id}/stock`, {
-    stock_cantidad,
-  });
   return data;
 }
 

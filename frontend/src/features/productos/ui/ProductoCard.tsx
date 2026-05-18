@@ -1,9 +1,11 @@
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 
 import type { ProductoListadoItemDTO } from "@/shared/api/endpoints/productos";
 import { useCartStore } from "@/shared/store/cart-store";
+import { useAuthStore } from "@/shared/store/auth-store";
 import { useMe } from "@/features/auth";
 import { PersonalizacionModal } from "./PersonalizacionModal";
 
@@ -17,16 +19,18 @@ function precioANumero(precio: string | number): number {
 
 export function ProductoCard({ producto }: Props) {
   const addItem = useCartStore((s) => s.addItem);
+  const token = useAuthStore((s) => s.access_token);
+  const navigate = useNavigate();
+  const location = useLocation();
   const { data: me } = useMe();
-  const isAdmin = me?.roles?.includes("ADMIN");
+  const isAdmin = Boolean(token && me?.roles?.includes("ADMIN"));
+  const isGuest = !token;
 
   const [imgFailed, setImgFailed] = useState(false);
   const [showModal, setShowModal] = useState(false);
 
   const precio = precioANumero(producto.precio);
-  // si el stock es 0 o menos, no se puede comprar
-  const sinStock = producto.stock_cantidad <= 0;
-  const puedeComprar = producto.disponible && !sinStock && Number.isFinite(precio) && !isAdmin;
+  const puedeComprar = producto.disponible && Number.isFinite(precio) && !isAdmin;
   const tieneIngredientesEnListado = (producto.ingredientes?.length ?? 0) > 0;
   const tieneAlergenos = producto.ingredientes?.some(i => i.es_alergeno) ?? false;
 
@@ -38,8 +42,14 @@ export function ProductoCard({ producto }: Props) {
   };
 
   // cuando el usuario toca "Agregar", si tiene ingredientes abro el modal de personalización
+  // Invitado: ve precios y puede tocar Agregar; se pide iniciar sesión antes de usar el carrito.
   const handleAgregar = (e: React.MouseEvent) => {
     e.preventDefault();
+    if (isGuest) {
+      toast.info("Iniciá sesión para agregar productos al carrito.");
+      navigate("/login", { state: { from: `${location.pathname}${location.search}` } });
+      return;
+    }
     if (!puedeComprar) return;
     if (tieneIngredientesEnListado) {
       setShowModal(true);
@@ -88,9 +98,9 @@ export function ProductoCard({ producto }: Props) {
 
           {/* Badges Desktop (Mobile los ponemos en el texto o más pequeños) */}
           <div className="absolute left-1.5 top-1.5 md:left-3 md:top-3 flex flex-col gap-1.5">
-            {(!producto.disponible || sinStock) && (
+            {!producto.disponible && (
               <span className="rounded bg-danger px-1.5 py-0.5 text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-white shadow-sm">
-                Sin stock
+                No disponible
               </span>
             )}
             {tieneAlergenos && (

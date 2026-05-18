@@ -6,11 +6,16 @@ const srcDir = fileURLToPath(new URL("./src", import.meta.url));
 
 /**
  * El front usa baseURL `/api/...`; el backend expone la API bajo `/api/v1` (spec v5).
- * Ej.: `/api/auth/login` → `http://127.0.0.1:8000/api/v1/auth/login`
+ * - Desarrollo en el host: proxy → 127.0.0.1:8008 (ver abajo).
+ * - Docker Compose: definí `VITE_PROXY_API_TARGET=http://api:8008` y NO establezcas `VITE_API_BASE_URL`
+ *   para que el navegador pida a `:5173/api/...` y Vite reenvíe al contenedor `api`.
  */
+const apiProxyTarget =
+  process.env.VITE_PROXY_API_TARGET?.trim() || "http://127.0.0.1:8008";
+
 const apiProxy = {
   "/api": {
-    target: "http://127.0.0.1:8008",
+    target: apiProxyTarget,
     changeOrigin: true,
     rewrite: (p: string) => p.replace(/^\/api/, "/api/v1"),
   },

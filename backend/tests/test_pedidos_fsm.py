@@ -29,7 +29,6 @@ def test_fsm_confirmado_hasta_entregado(engine) -> None:
             categoria_id=cat.id,
             nombre="Item",
             precio=Decimal("50.00"),
-            stock_cantidad=5,
             disponible=True,
         )
         session.add(prod)
@@ -62,7 +61,6 @@ def test_fsm_confirmado_hasta_entregado(engine) -> None:
         session.flush()
         p2 = uow.productos.get_by_id(prod.id)
         assert p2 is not None
-        assert p2.stock_cantidad == 3
 
         svc.transicionar_estado(uow, pedido.id, EstadoPedido.EN_PREP)
         svc.transicionar_estado(uow, pedido.id, EstadoPedido.EN_CAMINO)
@@ -105,15 +103,15 @@ class TestCrearPedido:
         )
         assert r.status_code == 422
 
-    def test_stock_insuficiente_falla(self, client, headers_client, producto_seed, direccion_seed):
+    def test_pedido_cantidad_alta_ok_sin_stock_producto(self, client, headers_client, producto_seed, direccion_seed):
         r = _post_pedido(
             client,
             headers_client,
             producto_seed,
             direccion_seed,
-            cantidad=producto_seed["stock_cantidad"] + 5,
+            cantidad=999,
         )
-        assert r.status_code == 400
+        assert r.status_code == 201
 
     def test_producto_no_disponible_falla(
         self,

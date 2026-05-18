@@ -11,7 +11,6 @@ from app.modules.categorias.exceptions import CategoriaNoEncontradaError
 from app.modules.productos.exceptions import (
     IngredientesInvalidosError,
     ProductoNoEncontradoError,
-    StockNegativoError,
 )
 from app.modules.productos.model import Producto
 from app.modules.productos.schemas import (
@@ -21,19 +20,11 @@ from app.modules.productos.schemas import (
     ProductoIngredienteSalida,
     ProductoListadoItem,
     ProductoRead,
-    ProductoStockUpdate,
     ProductoUpdate,
 )
 
 
 class ProductoCatalogoService:
-    @staticmethod
-    def _sincronizar_disponible_con_stock(p: Producto) -> None:
-        """Sin stock no puede ofrecerse a la venta: disponible se fuerza a False."""
-        hay_stock = p.stock_cantidad > 0
-        if not hay_stock:
-            p.disponible = False
-
     def listar(
         self,
         uow: UnitOfWork,
@@ -94,8 +85,6 @@ class ProductoCatalogoService:
             raise CategoriaNoEncontradaError(data.categoria_id)
         # 2. valido los ingredientes
         self._validar_lista_ingredientes(uow, data.ingredientes)
-        if data.stock_cantidad < 0:
-            raise StockNegativoError()
 
         # 3. armo el objeto producto
         p = Producto(
@@ -107,10 +96,8 @@ class ProductoCatalogoService:
             imagen_url=data.imagen_url,
             activo=data.activo,
             disponible=data.disponible,
-            stock_cantidad=data.stock_cantidad,
             deleted_at=None,
         )
-        self._sincronizar_disponible_con_stock(p)
         # 4. guardo en la base
         uow.productos.add(p)
         uow.flush()
@@ -151,7 +138,6 @@ class ProductoCatalogoService:
             self._validar_lista_ingredientes(uow, ings)
             self._persistir_ingredientes(uow, p.id, ings)
 
-        self._sincronizar_disponible_con_stock(p)
         uow.flush()
         return self._armar_read(uow, p)
 
@@ -185,19 +171,6 @@ class ProductoCatalogoService:
         if prod is None:
             raise ProductoNoEncontradoError(producto_id)
         return self._ingredientes_salida(uow, producto_id)
-
-    def actualizar_stock(self, uow: UnitOfWork, producto_id: int, data: ProductoStockUpdate) -> ProductoRead:
-        # si no existe mando 404
-        p = uow.productos.get_by_id_for_update(producto_id)
-        if p is None:
-            raise ProductoNoEncontradoError(producto_id)
-        if data.stock_cantidad < 0:
-            raise StockNegativoError()
-        # aca actualizo el stock
-        p.stock_cantidad = data.stock_cantidad
-        self._sincronizar_disponible_con_stock(p)
-        uow.flush()
-        return self._armar_read(uow, p)
 
     def _validar_lista_ingredientes(self, uow: UnitOfWork, items: list[ProductoIngredienteEntrada]) -> None:
         if not items:
@@ -244,6 +217,5 @@ class ProductoCatalogoService:
             imagen_url=p.imagen_url,
             activo=p.activo,
             disponible=p.disponible,
-            stock_cantidad=p.stock_cantidad,
             ingredientes=salida,
         )

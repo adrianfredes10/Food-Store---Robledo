@@ -1,6 +1,7 @@
-"""Tests HTTP del catálogo de productos (listado, CRUD admin, stock, soft delete)."""
+"""Tests HTTP del catálogo de productos (listado, CRUD admin, soft delete)."""
 
 from __future__ import annotations
+
 
 class TestListarProductos:
     def test_listar_publico_sin_auth(self, client):
@@ -42,7 +43,6 @@ class TestListarProductos:
                     "categoria_id": cat_id,
                     "nombre": f"PagProd{suf}_{i}",
                     "precio": "10.00",
-                    "stock_cantidad": 1,
                     "disponible": True,
                     "activo": True,
                     "ingredientes": [],
@@ -66,7 +66,6 @@ class TestCrearProducto:
                 "categoria_id": producto_seed["categoria_id"],
                 "nombre": "NoAuth",
                 "precio": "1.00",
-                "stock_cantidad": 1,
                 "disponible": True,
                 "activo": True,
                 "ingredientes": [],
@@ -86,7 +85,6 @@ class TestCrearProducto:
                 "nombre": f"Extra{suf}",
                 "descripcion": "x",
                 "precio": "15.50",
-                "stock_cantidad": 3,
                 "disponible": True,
                 "activo": True,
                 "ingredientes": [],
@@ -105,54 +103,10 @@ class TestCrearProducto:
                 "categoria_id": producto_seed["categoria_id"],
                 "nombre": "BadPrice",
                 "precio": "0",
-                "stock_cantidad": 1,
                 "disponible": True,
                 "activo": True,
                 "ingredientes": [],
             },
-        )
-        assert r.status_code == 422
-
-    def test_crear_stock_negativo_falla(self, client, headers_admin, producto_seed):
-        r = client.post(
-            "/api/v1/productos",
-            headers=headers_admin,
-            json={
-                "categoria_id": producto_seed["categoria_id"],
-                "nombre": "BadStock",
-                "precio": "1.00",
-                "stock_cantidad": -1,
-                "disponible": True,
-                "activo": True,
-                "ingredientes": [],
-            },
-        )
-        assert r.status_code == 422
-
-
-class TestStockProducto:
-    def test_actualizar_stock_admin(self, client, headers_admin, producto_seed):
-        pid = producto_seed["id"]
-        r = client.patch(
-            f"/api/v1/productos/{pid}/stock",
-            headers=headers_admin,
-            json={"stock_cantidad": 7},
-        )
-        assert r.status_code == 200
-        assert r.json()["stock_cantidad"] == 7
-
-    def test_actualizar_stock_requiere_auth(self, client, producto_seed):
-        r = client.patch(
-            f"/api/v1/productos/{producto_seed['id']}/stock",
-            json={"stock_cantidad": 1},
-        )
-        assert r.status_code == 403
-
-    def test_stock_no_puede_ser_negativo(self, client, headers_admin, producto_seed):
-        r = client.patch(
-            f"/api/v1/productos/{producto_seed['id']}/stock",
-            headers=headers_admin,
-            json={"stock_cantidad": -1},
         )
         assert r.status_code == 422
 

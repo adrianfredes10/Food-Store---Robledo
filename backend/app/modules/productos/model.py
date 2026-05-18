@@ -35,11 +35,17 @@ class Categoria(SQLModel, table=True):
 
 class Ingrediente(SQLModel, table=True):
     __tablename__ = "ingredientes"
+    __table_args__ = (CheckConstraint("stock_cantidad >= 0", name="ck_ingredientes_stock_no_negativo"),)
 
     id: int | None = Field(default=None, primary_key=True)
     nombre: str = Field(sa_column=Column(String(160), unique=True, nullable=False))
     unidad: str | None = Field(default=None, sa_column=Column(String(32), nullable=True))
     es_alergeno: bool = Field(default=False, sa_column=Column(Boolean, nullable=False, server_default="false"))
+    # Inventario físico (misma unidad lógica que `cantidad` en receta del producto: unidades, kg, etc.).
+    stock_cantidad: Decimal = Field(
+        default=Decimal("0"),
+        sa_column=Column(Numeric(12, 3), nullable=False, server_default="0"),
+    )
 
     productos_vinculos: list["ProductoIngrediente"] = Relationship(
         back_populates="ingrediente",
@@ -49,10 +55,7 @@ class Ingrediente(SQLModel, table=True):
 
 class Producto(SQLModel, table=True):
     __tablename__ = "productos"
-    __table_args__ = (
-        UniqueConstraint("sku", name="uq_productos_sku"),
-        CheckConstraint("stock_cantidad >= 0", name="ck_productos_stock_no_negativo"),
-    )
+    __table_args__ = (UniqueConstraint("sku", name="uq_productos_sku"),)
 
     id: int | None = Field(default=None, primary_key=True)
     categoria_id: int = Field(sa_column=Column(Integer, ForeignKey("categorias.id", ondelete="RESTRICT"), nullable=False, index=True))
@@ -63,7 +66,6 @@ class Producto(SQLModel, table=True):
     sku: str | None = Field(default=None, sa_column=Column(String(64), nullable=True))
     activo: bool = Field(default=True, sa_column=Column(Boolean, nullable=False, server_default="true"))
     disponible: bool = Field(default=True, sa_column=Column(Boolean, nullable=False, server_default="true"))
-    stock_cantidad: int = Field(default=0, sa_column=Column(Integer, nullable=False, server_default="0"))
     deleted_at: datetime | None = Field(default=None, sa_column=Column(DateTime(timezone=True), nullable=True))
     created_at: datetime = Field(
         default_factory=default_utc_now,

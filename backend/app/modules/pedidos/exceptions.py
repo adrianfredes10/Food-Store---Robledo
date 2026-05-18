@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from app.core.enums import EstadoPedido
 
 
@@ -42,7 +44,7 @@ class PedidoSinItemsError(ErrorDominioPedido):
 
 
 class ProductoNoComprableEnPedidoError(ErrorDominioPedido):
-    """El producto no cumple reglas de pedido (vigencia, disponibilidad o stock). Validación propia del módulo pedidos."""
+    """El producto no cumple reglas de pedido (vigencia o disponibilidad). Validación propia del módulo pedidos."""
 
     def __init__(self, producto_id: int, razon: str) -> None:
         super().__init__(f"Producto {producto_id} no puede incluirse en el pedido: {razon}")
@@ -108,6 +110,26 @@ class MesaOcupadaParaPedidoError(ErrorDominioPedido):
             f"La mesa {numero} acaba de ocuparse. Elegí otra mesa libre.",
         )
         self.numero = numero
+
+
+class IngredienteStockInsuficienteParaPedidoError(ErrorDominioPedido):
+    """No hay inventario de ingrediente suficiente para confirmar el pedido (recetas × cantidad)."""
+
+    def __init__(
+        self,
+        ingrediente_id: int,
+        nombre: str,
+        necesario: Decimal,
+        disponible: Decimal,
+    ) -> None:
+        super().__init__(
+            f"Ingrediente insuficiente para el pedido: '{nombre}' (id={ingrediente_id}). "
+            f"Necesario: {necesario}, disponible: {disponible}.",
+        )
+        self.ingrediente_id = ingrediente_id
+        self.nombre = nombre
+        self.necesario = necesario
+        self.disponible = disponible
 
 
 class PedidoHistorialDesincronizadoError(ErrorDominioPedido):

@@ -1,16 +1,17 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, status, BackgroundTasks
+import logging
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
 
 from app.core.config import settings
 from app.core.uow.unit_of_work import UnitOfWork
 from app.deps.uow import get_uow
-from app.deps.roles import require_admin, require_stock_o_admin
+from app.deps.roles import require_admin
 from app.integrations.producto_imagen_groq import aplicar_imagen_groq_post_creacion
 from app.modules.categorias.exceptions import CategoriaNoEncontradaError
 from app.modules.productos.exceptions import (
     ErrorProducto,
     IngredientesInvalidosError,
     ProductoNoEncontradoError,
-    StockNegativoError,
 )
 from app.modules.productos.service import ProductoCatalogoService
 from app.modules.productos.schemas import (
@@ -18,10 +19,11 @@ from app.modules.productos.schemas import (
     ProductoCreate,
     ProductoIngredienteSalida,
     ProductoRead,
-    ProductoStockUpdate,
     ProductoUpdate,
 )
 from app.modules.usuarios.model import Usuario
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/productos", tags=["productos"])
 
@@ -34,7 +36,7 @@ def _map_error(exc: BaseException) -> HTTPException:
         return HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc))
     if isinstance(exc, CategoriaNoEncontradaError):
         return HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc))
-    if isinstance(exc, (IngredientesInvalidosError, StockNegativoError)):
+    if isinstance(exc, IngredientesInvalidosError):
         return HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc))
     if isinstance(exc, ErrorProducto):
         return HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc))
@@ -97,12 +99,19 @@ def crear_producto(
     )
     if sin_imagen and settings.producto_imagen_auto and settings.groq_api_key.strip():
         assert created.id is not None
+        logger.info(
+            "imagen_auto: encolada para producto_id=%s (model=%s)",
+            created.id,
+            settings.groq_model,
+        )
         background_tasks.add_task(
             aplicar_imagen_groq_post_creacion,
             created.id,
             body.nombre,
             body.descripcion,
         )
+    elif sin_imagen and settings.producto_imagen_auto and not settings.groq_api_key.strip():
+        logger.warning("imagen_auto: PRODUCTO_IMAGEN_AUTO está activo pero GROQ_API_KEY está vacía; no se generará imagen")
     return created
 
 
@@ -142,16 +151,3 @@ def listar_ingredientes_producto(
     except (ErrorProducto, CategoriaNoEncontradaError) as e:
         raise _map_error(e) from e
 
-
-@router.patch("/{producto_id}/stock", response_model=ProductoRead)
-def actualizar_stock(
-    producto_id: int,
-    body: ProductoStockUpdate,
-    _: Usuario = Depends(require_stock_o_admin),
-    uow: UnitOfWork = Depends(get_uow),
-) -> ProductoRead:
-    # aca actualizo el stock nada mas
-    try:
-        return _service.actualizar_stock(uow, producto_id, body)
-    except (ErrorProducto, CategoriaNoEncontradaError) as e:
-        raise _map_error(e) from e

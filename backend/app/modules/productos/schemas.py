@@ -25,7 +25,6 @@ class ProductoCreate(BaseModel):
     imagen_url: str | None = Field(default=None, max_length=2048)
     activo: bool = True
     disponible: bool = True
-    stock_cantidad: int = Field(default=0, ge=0)
     ingredientes: list[ProductoIngredienteEntrada] = Field(default_factory=list)
 
 
@@ -41,10 +40,6 @@ class ProductoUpdate(BaseModel):
     ingredientes: list[ProductoIngredienteEntrada] | None = None
 
 
-class ProductoStockUpdate(BaseModel):
-    stock_cantidad: int = Field(ge=0)
-
-
 class ProductoRead(BaseModel):
     model_config = {"from_attributes": True}
 
@@ -57,7 +52,6 @@ class ProductoRead(BaseModel):
     imagen_url: str | None
     activo: bool
     disponible: bool
-    stock_cantidad: int
     ingredientes: list[ProductoIngredienteSalida]
 
 
@@ -67,9 +61,9 @@ class ProductoListadoItem(BaseModel):
     id: int
     categoria_id: int
     nombre: str
+    descripcion: str | None
     precio: Decimal
     disponible: bool
-    stock_cantidad: int
     sku: str | None
     imagen_url: str | None
     ingredientes: list[ProductoIngredienteSalida] = Field(default_factory=list)

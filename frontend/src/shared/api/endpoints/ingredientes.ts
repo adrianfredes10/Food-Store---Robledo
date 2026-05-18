@@ -5,6 +5,8 @@ export interface IngredienteRead {
   nombre: string;
   unidad: string | null;
   es_alergeno: boolean;
+  /** Inventario físico (misma unidad que la receta del producto). */
+  stock_cantidad: string | number;
 }
 
 export interface PaginaIngredientes {
@@ -28,6 +30,7 @@ export type IngredienteCreateBody = {
   nombre: string;
   unidad?: string | null;
   es_alergeno?: boolean;
+  stock_cantidad?: string | number | null;
 };
 
 export type IngredientePatchBody = Partial<{
@@ -35,6 +38,11 @@ export type IngredientePatchBody = Partial<{
   unidad: string | null;
   es_alergeno: boolean;
 }>;
+
+/** Exactamente uno de los dos campos (backend valida). */
+export type IngredienteStockPatchBody =
+  | { stock_cantidad: string | number; incremento?: never }
+  | { incremento: string | number; stock_cantidad?: never };
 
 export const ingredientesApi = {
   listar: (params?: { page?: number; size?: number; es_alergeno?: boolean; search?: string }) =>
@@ -52,6 +60,10 @@ export const ingredientesApi = {
 
   actualizar: (id: number, data: IngredientePatchBody) =>
     apiClient.patch<IngredienteRead>(`/ingredientes/${id}`, data).then((r) => r.data),
+
+  /** Compra / ajuste (+20) o stock absoluto (inventario físico). */
+  mutarStock: (id: number, data: IngredienteStockPatchBody) =>
+    apiClient.patch<IngredienteRead>(`/ingredientes/${id}/stock`, data).then((r) => r.data),
 
   eliminar: (id: number) => apiClient.delete(`/ingredientes/${id}`),
 };

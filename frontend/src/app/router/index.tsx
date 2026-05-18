@@ -17,6 +17,7 @@ import { CheckoutPage } from "@/pages/checkout";
 import { DireccionesPage } from "@/pages/direcciones";
 import { MisPedidosPage } from "@/pages/mis-pedidos";
 import { PedidoPage } from "@/pages/pedido";
+import { userConfirmedLogout } from "@/shared/lib/confirm-logout";
 import { useAuthStore } from "@/shared/store/auth-store";
 import { useCartStore } from "@/shared/store/cart-store";
 
@@ -28,8 +29,8 @@ function MainNav() {
   const token = useAuthStore((s) => s.access_token);
   const logout = useAuthStore((s) => s.logout);
   const { data: me } = useMe();
-  const isAdmin = me?.roles?.includes("ADMIN");
-  const isClient = token && !isAdmin;
+  const isAdmin = Boolean(token && me?.roles?.includes("ADMIN"));
+  const isClient = Boolean(token && !isAdmin);
   const [isOpen, setIsOpen] = useState(false);
   const cartItems = useCartStore((s) => s.items);
   const totalItems = cartItems.reduce((acc, item) => acc + item.cantidad, 0);
@@ -68,13 +69,7 @@ function MainNav() {
 
       {/* Right: Actions */}
       <div className="flex items-center gap-2 sm:gap-4 shrink-0 lg:w-48 lg:justify-end">
-        {isAdmin && (
-          <Link to="/admin" className="hidden lg:flex items-center px-3 py-1.5 text-xs font-bold text-white bg-warning hover:bg-warning/90 rounded-lg transition-colors shadow-sm">
-            Panel Admin
-          </Link>
-        )}
-        
-        {!isAdmin && (
+        {isClient && (
           <Link to="/carrito" className="relative p-2 text-primary hover:bg-bg-secondary rounded-xl transition-colors active:scale-95">
             <ShoppingBag size={22} strokeWidth={2.2} />
             {totalItems > 0 && (
@@ -85,16 +80,29 @@ function MainNav() {
           </Link>
         )}
         
-        <Link to={isClient ? "/direcciones" : (isAdmin ? "/admin" : "/login")} className="hidden lg:flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-white hover:bg-primary-hover transition-colors active:scale-95 shadow-sm">
+        <Link
+          to={isClient ? "/direcciones" : isAdmin ? "/admin" : "/login"}
+          className={`hidden lg:flex items-center gap-2 px-4 py-2 text-sm font-semibold rounded-lg text-white transition-colors active:scale-95 shadow-sm ${
+            isAdmin ? "bg-warning hover:bg-warning/90" : "bg-primary hover:bg-primary-hover"
+          }`}
+        >
           <User size={16} strokeWidth={2.5} />
-          <span className="max-w-[100px] truncate">{token && me ? me.nombre.split(' ')[0] : "Ingresar"}</span>
+          <span className="max-w-[140px] truncate">
+            {token && me
+              ? isAdmin
+                ? "Panel administrador"
+                : me.nombre.split(" ")[0]
+              : "Ingresar"}
+          </span>
         </Link>
 
         {token && (
           <button 
             type="button" 
             title="Cerrar sesión"
-            onClick={() => logout()} 
+            onClick={() => {
+              if (userConfirmedLogout()) logout();
+            }} 
             className="hidden lg:flex items-center p-2 text-muted hover:bg-danger/10 hover:text-danger rounded-xl transition-colors active:scale-95"
           >
              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-log-out"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>
@@ -186,8 +194,10 @@ function MainNav() {
                   <button
                     type="button"
                     onClick={() => {
-                      logout();
-                      setIsOpen(false);
+                      if (userConfirmedLogout()) {
+                        logout();
+                        setIsOpen(false);
+                      }
                     }}
                     className="w-full rounded-xl bg-white/10 py-2.5 text-center text-sm font-bold transition-colors hover:bg-white/15 active:scale-[0.99]"
                   >
@@ -212,6 +222,11 @@ function MainNav() {
 }
 
 function AppLayout() {
+  const token = useAuthStore((s) => s.access_token);
+  const { data: me } = useMe();
+  const isAdmin = Boolean(token && me?.roles?.includes("ADMIN"));
+  const isClient = Boolean(token && !isAdmin);
+
   return (
     <div className="min-h-screen flex flex-col fade-in max-md:overflow-x-clip md:overflow-x-visible">
       <header className="sticky top-0 z-50 border-b border-slate-100 bg-white/95 shadow-sm">
@@ -238,7 +253,9 @@ function AppLayout() {
               <h4 className="text-[9px] md:text-xs font-black uppercase tracking-widest text-slate-500 mb-4 md:mb-8 font-outfit text-white">Navegación</h4>
               <ul className="space-y-2 md:space-y-4 text-xs md:text-sm text-slate-400 font-medium">
                 <li><Link to="/" className="hover:text-white transition-colors">Menú</Link></li>
-                <li><Link to="/carrito" className="hover:text-white transition-colors">Carrito</Link></li>
+                {isClient && (
+                  <li><Link to="/carrito" className="hover:text-white transition-colors">Carrito</Link></li>
+                )}
               </ul>
             </div>
             <div className="text-center md:text-left">

@@ -5,11 +5,17 @@ import {
   useCrearIngrediente,
   useEliminarIngrediente,
   useIngredientesTodos,
+  useMutarStockIngrediente,
 } from "@/features/admin";
 import { apiErrorDetail } from "@/shared/api/apiErrorDetail";
 import type { IngredienteRead } from "@/shared/api/endpoints/ingredientes";
 import { ConfirmDialog, FormField, LoadingButton } from "@/shared/ui";
 import { toast } from "sonner";
+
+function formatCantidadStock(v: string | number | undefined): string {
+  const n = typeof v === "number" ? v : Number.parseFloat(String(v ?? "0"));
+  return Number.isFinite(n) ? n.toLocaleString("es-AR", { maximumFractionDigits: 4 }) : "0";
+}
 
 type ModalMode = "closed" | "create" | "edit";
 
@@ -19,6 +25,7 @@ export function AdminIngredientesPage() {
   const crear = useCrearIngrediente();
   const actualizar = useActualizarIngrediente();
   const eliminar = useEliminarIngrediente();
+  const mutarStock = useMutarStockIngrediente();
 
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -35,9 +42,13 @@ export function AdminIngredientesPage() {
     nombre: "",
     unidad: "",
     es_alergeno: false,
+    stock_inicial: "",
   });
 
   const [deleteTarget, setDeleteTarget] = useState<IngredienteRead | null>(null);
+  const [inventarioTarget, setInventarioTarget] = useState<IngredienteRead | null>(null);
+  const [inventarioModo, setInventarioModo] = useState<"increment" | "absolute">("increment");
+  const [inventarioValor, setInventarioValor] = useState("");
 
   const filtrados = useMemo(() => {
     return ingredientes.filter((i) => {
@@ -53,7 +64,7 @@ export function AdminIngredientesPage() {
 
   function abrirCrear() {
     setEditingId(null);
-    setForm({ nombre: "", unidad: "", es_alergeno: false });
+    setForm({ nombre: "", unidad: "", es_alergeno: false, stock_inicial: "" });
     setModalMode("create");
   }
 
@@ -64,8 +75,20 @@ export function AdminIngredientesPage() {
       nombre: i.nombre,
       unidad: i.unidad ?? "",
       es_alergeno: i.es_alergeno,
+      stock_inicial: "",
     });
     setModalMode("edit");
+  }
+
+  function abrirInventario(i: IngredienteRead) {
+    setInventarioTarget(i);
+    setInventarioModo("increment");
+    setInventarioValor("");
+  }
+
+  function cerrarInventario() {
+    setInventarioTarget(null);
+    setInventarioValor("");
   }
 
   function cerrarModal() {
@@ -86,8 +109,18 @@ export function AdminIngredientesPage() {
     const unidad = form.unidad.trim() ? form.unidad.trim() : null;
 
     if (modalMode === "create") {
+      let stock_cantidad: string | undefined;
+      const rawStock = form.stock_inicial.trim().replace(",", ".");
+      if (rawStock !== "") {
+        const sn = Number.parseFloat(rawStock);
+        if (!Number.isFinite(sn) || sn < 0) {
+          toast.error("Stock inicial inválido (usá 0 o más).");
+          return;
+        }
+        stock_cantidad = String(sn);
+      }
       crear.mutate(
-        { nombre, unidad, es_alergeno: form.es_alergeno },
+        { nombre, unidad, es_alergeno: form.es_alergeno, ...(stock_cantidad !== undefined ? { stock_cantidad } : {}) },
         {
           onSuccess: () => {
             toast.success("Ingrediente creado.");
@@ -122,6 +155,33 @@ export function AdminIngredientesPage() {
     }
   }
 
+  function guardarInventario() {
+    if (!inventarioTarget) return;
+    const raw = inventarioValor.trim().replace(",", ".");
+    const v = Number.parseFloat(raw);
+    if (!Number.isFinite(v)) {
+      toast.error("Ingresá un número válido.");
+      return;
+    }
+    if (inventarioModo === "absolute" && v < 0) {
+      toast.error("El stock no puede ser negativo.");
+      return;
+    }
+    mutarStock.mutate(
+      {
+        id: inventarioTarget.id,
+        data: inventarioModo === "increment" ? { incremento: v } : { stock_cantidad: v },
+      },
+      {
+        onSuccess: () => {
+          toast.success("Inventario actualizado.");
+          cerrarInventario();
+        },
+        onError: (err) => toast.error(apiErrorDetail(err, "No se pudo actualizar el inventario.")),
+      },
+    );
+  }
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -136,6 +196,14 @@ export function AdminIngredientesPage() {
 
   return (
     <div className="min-w-0 max-w-full max-md:overflow-x-clip space-y-8 pb-16 sm:space-y-8 sm:pb-20 md:overflow-x-visible">
+      <section className="box-border max-w-full overflow-hidden rounded-2xl border border-border bg-white p-4 shadow-sm max-md:px-3 md:p-6">
+        <p className="text-xs font-medium text-muted leading-relaxed">
+          Registrá aquí lo que comprás (ej.&nbsp;20 huevos). Al <span className="font-bold text-primary">confirmarse un pedido pagado</span>,
+          el sistema resta solo automáticamente según la <span className="font-bold text-primary">receta</span> de cada producto (cantidades en la
+          ficha del producto). Si el cliente saca un ingrediente opcional en el armado del plato, ese ítem no se descuenta.
+        </p>
+      </section>
+
       <section className="box-border max-w-full overflow-hidden rounded-2xl border border-border bg-white p-4 shadow-sm sm:flex sm:flex-row sm:items-center sm:justify-between sm:p-6 md:p-8 flex flex-col gap-4">
         <h2 className="text-sm font-bold uppercase tracking-widest text-primary">
           Ingredientes
@@ -177,7 +245,7 @@ export function AdminIngredientesPage() {
 
       <div className="max-w-full overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
         <div className="overflow-x-auto overscroll-x-contain">
-          <table className="w-full min-w-[560px] border-collapse text-left">
+          <table className="w-full min-w-[640px] border-collapse text-left">
             <thead className="bg-bg-secondary border-b border-border">
               <tr>
                 <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-muted">
@@ -185,6 +253,9 @@ export function AdminIngredientesPage() {
                 </th>
                 <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-muted">
                   Unidad
+                </th>
+                <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-muted">
+                  Inventario
                 </th>
                 <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-muted">
                   Alérgeno
@@ -197,7 +268,7 @@ export function AdminIngredientesPage() {
             <tbody className="divide-y divide-border">
               {estaVacio ? (
                 <tr>
-                  <td colSpan={4} className="px-6 py-16 text-center">
+                  <td colSpan={5} className="px-6 py-16 text-center">
                     <p className="text-xs font-bold uppercase tracking-widest text-muted">
                       {ingredientes.length === 0
                         ? "No hay ingredientes. Creá el primero con «Nuevo ingrediente»."
@@ -217,6 +288,11 @@ export function AdminIngredientesPage() {
                       {i.unidad ?? "—"}
                     </td>
                     <td className="px-4 py-4">
+                      <span className="font-outfit text-sm font-black tabular-nums text-primary">
+                        {formatCantidadStock(i.stock_cantidad)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-4">
                       {i.es_alergeno ? (
                         <span className="inline-block rounded-full border border-danger/20 bg-danger/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-danger">
                           Alérgeno
@@ -229,6 +305,13 @@ export function AdminIngredientesPage() {
                     </td>
                     <td className="px-4 py-4 text-right">
                       <div className="flex flex-wrap justify-end gap-3">
+                        <button
+                          type="button"
+                          className="text-xs font-bold uppercase tracking-widest text-accent hover:text-accent/80 transition-colors"
+                          onClick={() => abrirInventario(i)}
+                        >
+                          Inventario
+                        </button>
                         <button
                           type="button"
                           className="text-xs font-bold uppercase tracking-widest text-muted hover:text-primary transition-colors"
@@ -273,6 +356,18 @@ export function AdminIngredientesPage() {
                         required
                     />
                 </FormField>
+                {modalMode === "create" && (
+                  <FormField label="Stock inicial (opcional)">
+                    <input
+                      type="text"
+                      inputMode="decimal"
+                      className="mt-1 w-full rounded-xl border border-border bg-bg-secondary px-4 py-3 text-sm font-bold text-primary focus:border-accent focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent transition-all"
+                      placeholder="Ej: 20 (huevos, kg según unidad)"
+                      value={form.stock_inicial}
+                      onChange={(e) => setForm((f) => ({ ...f, stock_inicial: e.target.value }))}
+                    />
+                  </FormField>
+                )}
                 <FormField label="Unidad (opcional)">
                     <input
                         className="mt-1 w-full rounded-xl border border-border bg-bg-secondary px-4 py-3 text-sm font-bold text-primary focus:border-accent focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent transition-all"
@@ -309,6 +404,80 @@ export function AdminIngredientesPage() {
                 className="w-full rounded-xl bg-primary px-6 py-3 text-sm font-bold text-white hover:bg-primary-hover shadow-sm sm:w-auto"
               >
                 Guardar
+              </LoadingButton>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {inventarioTarget !== null && (
+        <div
+          className="fixed inset-0 z-[60] flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4 fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="inventario-ingrediente-title"
+        >
+          <div className="box-border max-h-[min(90dvh,100dvh)] w-full max-w-[min(32rem,calc(100vw-1rem))] overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-white p-4 shadow-xl sm:mx-auto sm:rounded-2xl sm:p-6 md:p-8 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
+            <h3
+              id="inventario-ingrediente-title"
+              className="text-sm font-bold uppercase tracking-widest text-primary border-b border-border pb-4 mb-4"
+            >
+              Inventario — {inventarioTarget.nombre}
+            </h3>
+            <p className="mb-4 text-xs font-medium text-muted">
+              Actual:{" "}
+              <span className="font-black tabular-nums text-primary">
+                {formatCantidadStock(inventarioTarget.stock_cantidad)}
+              </span>
+              {inventarioTarget.unidad ? ` ${inventarioTarget.unidad}` : ""}
+            </p>
+            <div className="mb-4 flex flex-wrap gap-3">
+              <label className="flex cursor-pointer items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted">
+                <input
+                  type="radio"
+                  name="inv-modo"
+                  className="h-4 w-4 accent-accent"
+                  checked={inventarioModo === "increment"}
+                  onChange={() => setInventarioModo("increment")}
+                />
+                Sumar compra / ajuste (+ o −)
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted">
+                <input
+                  type="radio"
+                  name="inv-modo"
+                  className="h-4 w-4 accent-accent"
+                  checked={inventarioModo === "absolute"}
+                  onChange={() => setInventarioModo("absolute")}
+                />
+                Establecer stock total
+              </label>
+            </div>
+            <FormField label={inventarioModo === "increment" ? "Cantidad a sumar (ej. 20 o -2)" : "Nuevo stock total"}>
+              <input
+                type="text"
+                inputMode="decimal"
+                className="mt-1 w-full rounded-xl border border-border bg-bg-secondary px-4 py-3 text-sm font-bold text-primary focus:border-accent focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent transition-all"
+                value={inventarioValor}
+                onChange={(e) => setInventarioValor(e.target.value)}
+                autoFocus
+              />
+            </FormField>
+            <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={cerrarInventario}
+                className="w-full rounded-xl border border-border px-4 py-3 text-sm font-bold text-muted hover:bg-bg-secondary transition-colors sm:w-auto"
+              >
+                Cancelar
+              </button>
+              <LoadingButton
+                type="button"
+                onClick={guardarInventario}
+                isLoading={mutarStock.isPending}
+                className="w-full rounded-xl bg-accent px-6 py-3 text-sm font-bold text-white hover:bg-accent-hover shadow-sm sm:w-auto"
+              >
+                Aplicar
               </LoadingButton>
             </div>
           </div>

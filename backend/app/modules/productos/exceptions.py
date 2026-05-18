@@ -13,11 +13,6 @@ class IngredientesInvalidosError(ErrorProducto):
         super().__init__("Uno o más ingredientes no existen")
 
 
-class StockNegativoError(ErrorProducto):
-    def __init__(self) -> None:
-        super().__init__("La cantidad de stock no puede ser negativa")
-
-
 # Re-export: dominio categorías (mismo mensaje / tipo para routers que importaban desde aquí).
 from app.modules.categorias.exceptions import CategoriaNoEncontradaError  # noqa: E402
 
@@ -26,5 +21,4 @@ __all__ = [
     "ErrorProducto",
     "IngredientesInvalidosError",
     "ProductoNoEncontradoError",
-    "StockNegativoError",
 ]

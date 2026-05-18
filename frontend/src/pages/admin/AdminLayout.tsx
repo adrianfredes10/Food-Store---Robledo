@@ -11,10 +11,12 @@ import {
   LogOut,
   Users,
   Table2,
+  Eye,
 } from "lucide-react";
 
-import { useAuthStore } from "@/shared/store/auth-store";
+import { userConfirmedLogout } from "@/shared/lib/confirm-logout";
 import { useAuthHydrated, useMe } from "@/features/auth";
+import { useAuthStore } from "@/shared/store/auth-store";
 
 const NAV_ITEMS = [
   { label: "Dashboard", to: "/admin", icon: LayoutDashboard, end: true },
@@ -144,7 +146,17 @@ export function AdminLayout() {
 
           <div className="flex min-w-0 flex-1 flex-col items-stretch justify-center md:items-center" />
 
-          <div className="flex shrink-0 items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <Link
+              to="/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 rounded-xl border border-border/80 bg-white/50 px-3 py-2 text-xs font-bold uppercase tracking-widest text-primary transition-colors hover:border-accent/40 hover:bg-accent/5"
+            >
+              <Eye size={16} className="shrink-0" />
+              <span className="hidden sm:inline">Vista previa catálogo</span>
+              <span className="sm:hidden">Catálogo</span>
+            </Link>
             {me?.nombre && (
               <span className="hidden sm:block text-xs font-bold text-muted uppercase tracking-widest">
                 {me.nombre}
@@ -152,7 +164,9 @@ export function AdminLayout() {
             )}
             <button
               type="button"
-              onClick={() => useAuthStore.getState().logout()}
+              onClick={() => {
+                if (userConfirmedLogout()) useAuthStore.getState().logout();
+              }}
               className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border/80 bg-white/50
                      text-xs font-bold uppercase tracking-widest text-danger
                      hover:bg-danger/10 hover:border-danger/30 transition-colors"

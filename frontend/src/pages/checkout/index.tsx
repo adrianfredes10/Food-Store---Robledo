@@ -113,11 +113,11 @@ export function CheckoutPage() {
           const mensaje =
             typeof d === "string"
               ? d
-              : "Error al crear el pedido. Verificá el stock disponible.";
+              : "Error al crear el pedido. Verificá disponibilidad e inventario de ingredientes.";
           toast.error(mensaje);
           return;
         }
-        toast.error("Error al crear el pedido. Verificá el stock disponible.");
+        toast.error("Error al crear el pedido. Verificá disponibilidad e inventario de ingredientes.");
       },
     });
   };

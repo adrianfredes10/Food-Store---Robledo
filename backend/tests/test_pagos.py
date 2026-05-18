@@ -29,7 +29,6 @@ def _seed_pedido_pendiente(engine) -> int:
             categoria_id=cat.id,
             nombre="Item",
             precio=Decimal("10.00"),
-            stock_cantidad=10,
             disponible=True,
         )
         session.add(prod)
@@ -89,15 +88,12 @@ def _crear_pedido_y_checkout(client, headers_client, producto_seed, direccion_se
 
 class TestWebhookPago:
     def test_webhook_approved_confirma_pedido(self, client, headers_client, producto_seed, direccion_seed):
-        cantidad = 2
-        stock_ini = producto_seed["stock_cantidad"]
-        pid = producto_seed["id"]
         pedido_id = _crear_pedido_y_checkout(
             client,
             headers_client,
             producto_seed,
             direccion_seed,
-            cantidad=cantidad,
+            cantidad=2,
         )
         pay_id = "MOCK-PAY-WEBHOOK-APPROVE-1"
         wh = client.post(
@@ -112,9 +108,6 @@ class TestWebhookPago:
         gp = client.get(f"/api/v1/pedidos/{pedido_id}", headers=headers_client)
         assert gp.status_code == 200
         assert gp.json()["estado"] == "CONFIRMADO"
-        pr = client.get(f"/api/v1/productos/{pid}")
-        assert pr.status_code == 200
-        assert pr.json()["stock_cantidad"] == stock_ini - cantidad
 
     def test_webhook_rejected_pedido_sigue_pendiente(self, client, headers_client, producto_seed, direccion_seed):
         pedido_id = _crear_pedido_y_checkout(client, headers_client, producto_seed, direccion_seed)
@@ -133,8 +126,6 @@ class TestWebhookPago:
 
     def test_webhook_idempotente(self, client, headers_client, producto_seed, direccion_seed):
         cantidad = 2
-        stock_ini = producto_seed["stock_cantidad"]
-        pid = producto_seed["id"]
         pedido_id = _crear_pedido_y_checkout(
             client,
             headers_client,
@@ -152,8 +143,5 @@ class TestWebhookPago:
         w2 = client.post("/api/v1/pagos/webhook", json=payload)
         assert w1.status_code == 200
         assert w2.status_code == 200
-        pr = client.get(f"/api/v1/productos/{pid}")
-        assert pr.status_code == 200
-        assert pr.json()["stock_cantidad"] == stock_ini - cantidad
         gp = client.get(f"/api/v1/pedidos/{pedido_id}", headers=headers_client)
         assert gp.json()["estado"] == "CONFIRMADO"

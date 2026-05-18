@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import re
+from typing import Any
 from urllib.parse import quote
 
 import httpx
@@ -34,6 +35,32 @@ def _sanitize_one_line(content: str) -> str:
     return t[:480] if len(t) > 480 else t
 
 
+def _normalizar_contenido_mensaje(raw: Any) -> str | None:
+    """Groq suele devolver `content` como string; algunos modelos/flujos usan lista de partes (estilo OpenAI)."""
+    if raw is None:
+        return None
+    if isinstance(raw, str):
+        s = raw.strip()
+        return s if s else None
+    if isinstance(raw, list):
+        partes: list[str] = []
+        for item in raw:
+            if isinstance(item, str) and item.strip():
+                partes.append(item.strip())
+            elif isinstance(item, dict):
+                texto = item.get("text")
+                if isinstance(texto, str) and texto.strip():
+                    partes.append(texto.strip())
+                else:
+                    nested = item.get("content")
+                    nested_txt = _normalizar_contenido_mensaje(nested)
+                    if nested_txt:
+                        partes.append(nested_txt)
+        unido = " ".join(partes)
+        return unido if unido else None
+    return None
+
+
 def groq_generar_prompt_imagen(*, api_key: str, model: str, nombre: str, descripcion: str | None) -> str | None:
     if not api_key.strip():
         return None
@@ -53,16 +80,38 @@ def groq_generar_prompt_imagen(*, api_key: str, model: str, nombre: str, descrip
     }
     with httpx.Client(timeout=45.0) as client:
         r = client.post(GROQ_CHAT_URL, json=payload, headers=headers)
-        r.raise_for_status()
+        try:
+            r.raise_for_status()
+        except httpx.HTTPStatusError:
+            logger.warning(
+                "Groq chat/completions HTTP %s (model=%s): %s",
+                r.status_code,
+                model,
+                (r.text or "")[:600],
+            )
+            return None
         data = r.json()
     choices = data.get("choices") or []
     if not choices:
+        logger.warning(
+            "Groq chat/completions: respuesta sin choices (model=%s). Claves: %s",
+            model,
+            list(data.keys()),
+        )
         return None
     msg = choices[0].get("message") or {}
-    raw = msg.get("content")
-    if not isinstance(raw, str) or not raw.strip():
+    raw_content = msg.get("content")
+    texto = _normalizar_contenido_mensaje(raw_content)
+    if not texto:
+        finish = choices[0].get("finish_reason")
+        logger.warning(
+            "Groq chat/completions: message.content vacío o no textual (model=%s, finish_reason=%s, tipo=%s)",
+            model,
+            finish,
+            type(raw_content).__name__,
+        )
         return None
-    line = _sanitize_one_line(raw)
+    line = _sanitize_one_line(texto)
     return line or None
 
 

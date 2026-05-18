@@ -6,7 +6,6 @@ import {
   createProducto,
   deleteProducto,
   patchProducto,
-  patchProductoStock,
   type ProductoCreateBody,
   type ProductoPatchBody,
 } from "@/shared/api/endpoints/productos";
@@ -72,16 +71,6 @@ export function useAdminProductoMutations() {
     onError: () => toast.error("Error al actualizar"),
   });
 
-  const stock = useMutation({
-    mutationFn: ({ id, stock_cantidad }: { id: number; stock_cantidad: number }) =>
-      patchProductoStock(id, stock_cantidad),
-    onSuccess: () => {
-      toast.success("Stock actualizado");
-      void invalidateAfterCatalogMutate(qc);
-    },
-    onError: () => toast.error("Stock inválido"),
-  });
-
   const eliminar = useMutation({
     mutationFn: (id: number) => deleteProducto(id),
     onSuccess: () => {
@@ -91,5 +80,5 @@ export function useAdminProductoMutations() {
     onError: () => toast.error("No se pudo eliminar"),
   });
 
-  return { crear, patch, stock, eliminar };
+  return { crear, patch, eliminar };
 }

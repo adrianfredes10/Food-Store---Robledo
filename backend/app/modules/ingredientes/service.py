@@ -1,13 +1,21 @@
 from __future__ import annotations
 
 import math
+from decimal import Decimal
 
-from app.modules.ingredientes.schemas import IngredienteCreate, IngredienteRead, IngredienteUpdate, PaginaIngredientes
+from app.modules.ingredientes.schemas import (
+    IngredienteCreate,
+    IngredienteRead,
+    IngredienteStockMutation,
+    IngredienteUpdate,
+    PaginaIngredientes,
+)
 from app.modules.productos.model import Ingrediente
 from app.core.uow.unit_of_work import UnitOfWork
 from app.modules.ingredientes.exceptions import (
     IngredienteEnUsoError,
     IngredienteNoEncontradoError,
+    IngredienteStockInvalidoError,
     NombreIngredienteRepetidoError,
 )
 
@@ -40,7 +48,12 @@ class IngredienteService:
             raise NombreIngredienteRepetidoError(data.nombre)
 
         # 2. creo y guardo
-        ing = Ingrediente(**data.model_dump())
+        ing = Ingrediente(
+            nombre=data.nombre,
+            unidad=data.unidad,
+            es_alergeno=data.es_alergeno,
+            stock_cantidad=data.stock_cantidad if data.stock_cantidad is not None else Decimal("0"),
+        )
         uow.ingredientes.add(ing)
         uow.flush()
         assert ing.id is not None
@@ -83,6 +96,20 @@ class IngredienteService:
         # 3. borro
         uow.ingredientes.delete(ing)
         uow.flush()
+
+    def mutar_stock(self, uow: UnitOfWork, ing_id: int, data: IngredienteStockMutation) -> IngredienteRead:
+        ing = uow.ingredientes.get_by_id(ing_id)
+        if ing is None:
+            raise IngredienteNoEncontradoError(ing_id)
+        if data.stock_cantidad is not None:
+            ing.stock_cantidad = data.stock_cantidad
+        else:
+            assert data.incremento is not None
+            ing.stock_cantidad = ing.stock_cantidad + data.incremento
+        if ing.stock_cantidad < 0:
+            raise IngredienteStockInvalidoError("El stock del ingrediente no puede quedar negativo.")
+        uow.flush()
+        return IngredienteRead.model_validate(ing)
 
 
 _service = IngredienteService()

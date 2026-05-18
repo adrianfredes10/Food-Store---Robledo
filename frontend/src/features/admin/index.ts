@@ -15,6 +15,7 @@ export {
   useIngredientes,
   useIngredientesDeProducto,
   useIngredientesTodos,
+  useMutarStockIngrediente,
 } from "./hooks/useAdminIngredientes";
 export { useAdminPedidoDetalle, useAdminPedidoTransicion, useAdminPedidosList } from "./hooks/useAdminPedidos";
 export { useAdminUsuariosList } from "./hooks/useAdminUsuarios";

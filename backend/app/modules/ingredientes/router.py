@@ -1,10 +1,17 @@
 from fastapi import APIRouter, Depends, Query, HTTPException, status
 
-from app.modules.ingredientes.schemas import IngredienteCreate, IngredienteRead, IngredienteUpdate, PaginaIngredientes
+from app.modules.ingredientes.schemas import (
+    IngredienteCreate,
+    IngredienteRead,
+    IngredienteStockMutation,
+    IngredienteUpdate,
+    PaginaIngredientes,
+)
 from app.modules.ingredientes.exceptions import (
     ErrorIngrediente,
     IngredienteEnUsoError,
     IngredienteNoEncontradoError,
+    IngredienteStockInvalidoError,
     NombreIngredienteRepetidoError,
 )
 from app.core.uow.unit_of_work import UnitOfWork
@@ -23,6 +30,8 @@ def _map_error(exc: BaseException) -> HTTPException:
     if isinstance(exc, NombreIngredienteRepetidoError):
         return HTTPException(status.HTTP_409_CONFLICT, detail=str(exc))
     if isinstance(exc, IngredienteEnUsoError):
+        return HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc))
+    if isinstance(exc, IngredienteStockInvalidoError):
         return HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc))
     if isinstance(exc, ErrorIngrediente):
         return HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc))
@@ -77,6 +86,19 @@ def actualizar_ingrediente(
 ) -> IngredienteRead:
     try:
         return _service.actualizar(uow, ing_id, body)
+    except ErrorIngrediente as e:
+        raise _map_error(e) from e
+
+
+@router.patch("/{ing_id}/stock", response_model=IngredienteRead)
+def mutar_stock_ingrediente(
+    ing_id: int,
+    body: IngredienteStockMutation,
+    _: Usuario = Depends(require_stock_o_admin),
+    uow: UnitOfWork = Depends(get_uow),
+) -> IngredienteRead:
+    try:
+        return _service.mutar_stock(uow, ing_id, body)
     except ErrorIngrediente as e:
         raise _map_error(e) from e
 

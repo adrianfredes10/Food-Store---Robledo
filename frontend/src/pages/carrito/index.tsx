@@ -1,9 +1,11 @@
 import { useMemo } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, Navigate } from "react-router-dom";
 import { MoveLeft, PackageOpen, CreditCard } from "lucide-react";
 
 import { CartItem } from "@/features/carrito/ui/CartItem";
+import { useAuthHydrated } from "@/features/auth";
 import { useCartStore } from "@/shared/store/cart-store";
+import { useAuthStore } from "@/shared/store/auth-store";
 import { EmptyState } from "@/shared/ui/EmptyState";
 
 function formatMoney(value: number) {
@@ -12,9 +14,23 @@ function formatMoney(value: number) {
 
 export function CarritoPage() {
   const navigate = useNavigate();
+  const authHydrated = useAuthHydrated();
+  const token = useAuthStore((s) => s.access_token);
   // el carrito se guarda en localStorage automaticamente
   const items = useCartStore((s) => s.items);
   const clearCart = useCartStore((s) => s.clearCart);
+
+  if (!authHydrated) {
+    return (
+      <div className="flex items-center justify-center py-12 md:py-20">
+        <p className="text-sm font-bold uppercase tracking-widest text-muted animate-pulse">Sincronizando...</p>
+      </div>
+    );
+  }
+
+  if (!token) {
+    return <Navigate to="/login" replace state={{ from: "/carrito" }} />;
+  }
 
   const subtotal = useMemo(() => items.reduce((acc, i) => acc + i.precioUnitario * i.cantidad, 0), [items]);
   const envio = 50;

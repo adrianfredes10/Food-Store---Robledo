@@ -42,7 +42,6 @@ def _seed_forma_pago_producto(engine) -> tuple[int, str]:
             categoria_id=cat.id,
             nombre="ZZ pytest pizza napolitana",
             precio=Decimal("100.00"),
-            stock_cantidad=50,
             disponible=True,
         )
         session.add(pizza)
@@ -51,7 +50,6 @@ def _seed_forma_pago_producto(engine) -> tuple[int, str]:
                 categoria_id=cat.id,
                 nombre="Empanada carne",
                 precio=Decimal("10.00"),
-                stock_cantidad=50,
                 disponible=True,
             ),
         )

@@ -18,3 +18,8 @@ class IngredienteEnUsoError(ErrorIngrediente):
     def __init__(self, ingrediente_id: int) -> None:
         super().__init__(f"El ingrediente {ingrediente_id} está asociado a productos activos")
         self.ingrediente_id = ingrediente_id
+
+
+class IngredienteStockInvalidoError(ErrorIngrediente):
+    def __init__(self, mensaje: str) -> None:
+        super().__init__(mensaje)

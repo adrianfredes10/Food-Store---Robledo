@@ -5,6 +5,7 @@ import {
   type IngredienteCreateBody,
   type IngredientePatchBody,
   type IngredienteRead,
+  type IngredienteStockPatchBody,
 } from "@/shared/api/endpoints/ingredientes";
 import { invalidateAfterCatalogMutate } from "@/shared/lib/queryCacheSync";
 
@@ -78,6 +79,17 @@ export function useEliminarIngrediente() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (id: number) => ingredientesApi.eliminar(id),
+    onSuccess: () => {
+      void invalidateAfterCatalogMutate(qc);
+    },
+  });
+}
+
+export function useMutarStockIngrediente() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: IngredienteStockPatchBody }) =>
+      ingredientesApi.mutarStock(id, data),
     onSuccess: () => {
       void invalidateAfterCatalogMutate(qc);
     },

@@ -11,6 +11,10 @@ class IngredienteRepository(BaseRepository[Ingrediente]):
     def __init__(self, session: Session) -> None:
         super().__init__(session, Ingrediente)
 
+    def get_by_id_for_update(self, ing_id: int) -> Ingrediente | None:
+        stmt = select(Ingrediente).where(Ingrediente.id == ing_id).with_for_update()
+        return self._session.exec(stmt).first()
+
     def listar_paginado(
         self,
         page: int = 1,

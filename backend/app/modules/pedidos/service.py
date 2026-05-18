@@ -1,4 +1,4 @@
-"""Servicio de pedidos: FSM de estados, creación con validación y stock bajo concurrencia."""
+"""Servicio de pedidos: FSM de estados, creación con validación e inventario por ingredientes."""
 
 from __future__ import annotations
 
@@ -14,6 +14,7 @@ from app.modules.pedidos.exceptions import (
     DireccionNoAplicaRetiroLocalError,
     ErrorDominioPedido,
     FormaPagoNoValidaError,
+    IngredienteStockInsuficienteParaPedidoError,
     MesaNoHabilitadaParaPedidoError,
     MesaOcupadaParaPedidoError,
     MotivoCancelacionRequeridoError,
@@ -87,59 +88,96 @@ def _agrupar_cantidad_por_producto(lineas: Sequence[tuple[int, int, list[int] | 
 
 
 def _validar_estado_producto_para_linea(producto_id: int, cantidad_total: int, p: Producto) -> None:
-    """Comprueba reglas de negocio de pedidos sobre la fila de producto (sin pasar por el servicio de catálogo)."""
+    """Comprueba disponibilidad del ítem de catálogo (sin stock por unidades de producto)."""
     if cantidad_total < 1:
         raise ProductoNoComprableEnPedidoError(producto_id, "la cantidad debe ser mayor a cero")
-    if p.stock_cantidad < 0:
-        raise ProductoNoComprableEnPedidoError(producto_id, "stock inválido en catálogo")
     if p.deleted_at is not None:
         raise ProductoNoComprableEnPedidoError(producto_id, "eliminado")
     if not p.disponible:
         raise ProductoNoComprableEnPedidoError(producto_id, "no disponible")
-    if p.stock_cantidad < cantidad_total:
-        raise ProductoNoComprableEnPedidoError(producto_id, "sin stock suficiente")
 
 
 def _revalidar_y_bloquear_productos_para_crear(
     uow: UnitOfWork,
     cantidad_por_producto: dict[int, int],
 ) -> dict[int, Producto]:
-    """Revalida stock/disponibilidad tras bloquear cada producto con ``FOR UPDATE``.
+    """Vuelve a validar disponibilidad de cada producto antes de persistir el pedido.
 
-    Los ``producto_id`` se bloquean **siempre en orden ascendente** (lista determinista,
-    independiente del orden de las líneas del pedido). Así dos transacciones que tocan
-    el mismo subconjunto de productos adquieren locks en el mismo orden y se reduce el
-    riesgo de deadlock. Misma convención que ``_descontar_stock_al_confirmar``.
+    Los ids se recorren en orden ascendente solo para convención estable en logs o futuros locks.
     """
-    bloqueados: dict[int, Producto] = {}
-    producto_ids_en_orden_de_lock = sorted(cantidad_por_producto.keys())
-    for producto_id in producto_ids_en_orden_de_lock:
-        p = uow.productos.get_by_id_for_update(producto_id)
+    out: dict[int, Producto] = {}
+    for producto_id in sorted(cantidad_por_producto.keys()):
+        p = uow.productos.get_by_id(producto_id)
         if p is None:
             raise ProductoNoComprableEnPedidoError(producto_id, "no existe o fue eliminado")
         _validar_estado_producto_para_linea(producto_id, cantidad_por_producto[producto_id], p)
-        bloqueados[producto_id] = p
-    return bloqueados
+        out[producto_id] = p
+    return out
 
 
-def _descontar_stock_al_confirmar(uow: UnitOfWork, pedido_id: int) -> None:
-    # aca descuento el stock de cada producto del pedido
+def _necesidad_ingredientes_por_lineas(
+    uow: UnitOfWork,
+    lineas: Sequence[tuple[int, int, list[int] | None]],
+) -> dict[int, Decimal]:
+    """Cantidad de cada ingrediente según recetas (`producto_ingrediente`) × unidades de producto.
+
+    Los ids en ``personalizacion`` son ingredientes excluidos por el cliente (no se descuentan).
+    """
+    necesidad: dict[int, Decimal] = defaultdict(lambda: Decimal("0"))
+    for producto_id, cantidad, pers in lineas:
+        excl = set(pers or [])
+        vinculos = uow.productos_ingredientes.list_por_producto(producto_id)
+        for v in vinculos:
+            if v.ingrediente_id in excl:
+                continue
+            necesidad[v.ingrediente_id] += v.cantidad * Decimal(cantidad)
+    return dict(necesidad)
+
+
+def _necesidad_ingredientes_desde_pedido(uow: UnitOfWork, pedido_id: int) -> dict[int, Decimal]:
     detalles = uow.pedidos.list_detalles_por_pedido_id(pedido_id)
-    necesario: dict[int, int] = defaultdict(int)
+    lineas: list[tuple[int, int, list[int] | None]] = []
     for d in detalles:
         if d.producto_id is None:
             continue
-        necesario[d.producto_id] += d.cantidad
-    producto_ids_en_orden_de_lock = sorted(necesario.keys())
-    for producto_id in producto_ids_en_orden_de_lock:
-        cant = necesario[producto_id]
-        p = uow.productos.get_by_id_for_update(producto_id)
-        if p is None:
-            raise ProductoNoComprableEnPedidoError(producto_id, "no disponible o eliminado")
-        _validar_estado_producto_para_linea(producto_id, cant, p)
-        p.stock_cantidad -= cant
-        if p.stock_cantidad == 0:
-            p.disponible = False
+        lineas.append((d.producto_id, d.cantidad, d.personalizacion))
+    return _necesidad_ingredientes_por_lineas(uow, lineas)
+
+
+def _validar_stock_ingredientes_para_lineas(
+    uow: UnitOfWork,
+    lineas: Sequence[tuple[int, int, list[int] | None]],
+) -> None:
+    necesidad = _necesidad_ingredientes_por_lineas(uow, lineas)
+    for ing_id, need in sorted(necesidad.items()):
+        if need <= 0:
+            continue
+        ing = uow.ingredientes.get_by_id(ing_id)
+        if ing is None:
+            raise ErrorDominioPedido(f"Receta inconsistente: ingrediente id={ing_id} no existe")
+        if ing.stock_cantidad < need:
+            raise IngredienteStockInsuficienteParaPedidoError(ing_id, ing.nombre, need, ing.stock_cantidad)
+
+
+def _descontar_stock_ingredientes_al_confirmar(uow: UnitOfWork, pedido_id: int) -> None:
+    necesidad = _necesidad_ingredientes_desde_pedido(uow, pedido_id)
+    if not necesidad:
+        return
+    for ing_id in sorted(necesidad.keys()):
+        need = necesidad[ing_id]
+        if need <= 0:
+            continue
+        ing = uow.ingredientes.get_by_id_for_update(ing_id)
+        if ing is None:
+            raise ErrorDominioPedido(f"Ingrediente id={ing_id} no encontrado al descontar inventario")
+        if ing.stock_cantidad < need:
+            raise IngredienteStockInsuficienteParaPedidoError(ing_id, ing.nombre, need, ing.stock_cantidad)
+        ing.stock_cantidad -= need
+
+
+def _descontar_inventario_al_confirmar(uow: UnitOfWork, pedido_id: int) -> None:
+    """Descuenta inventario de ingredientes según recetas al confirmar el pedido pagado."""
+    _descontar_stock_ingredientes_al_confirmar(uow, pedido_id)
 
 
 class PedidoService:
@@ -159,9 +197,9 @@ class PedidoService:
         forma_pago_codigo: str = "MERCADOPAGO",
         actor_usuario_id: int | None = None,
     ) -> Pedido:
-        """Crea pedido PENDIENTE con detalles. Valida líneas y, bajo bloqueo, vuelve a comprobar stock.
+        """Crea pedido PENDIENTE con detalles. Valida líneas y vuelve a comprobar disponibilidad.
 
-        No descuenta stock aquí (solo al confirmar vía ``transicionar_estado``). El llamador no debe
+        No descuenta inventario aquí (solo al confirmar vía ``transicionar_estado``). El llamador no debe
         invocar ``validar_lineas_para_crear_pedido`` por separado: ya está incluido.
         """
         if tipo_servicio == TipoServicioPedido.DELIVERY:
@@ -260,7 +298,7 @@ class PedidoService:
         return pedido
 
     def validar_lineas_para_crear_pedido(self, uow: UnitOfWork, lineas: Sequence[tuple[int, int, list[int] | None]]) -> None:
-        """Antes de persistir un pedido: comprueba cada producto (no eliminado, disponible, stock).
+        """Antes de persistir un pedido: comprueba cada producto (no eliminado, disponible).
 
         Cada tupla es ``(producto_id, cantidad, personalizacion)``. Varias líneas del mismo producto suman cantidad.
         Lee el estado actual vía repositorio; no delega en ``ProductoCatalogoService``.
@@ -272,6 +310,7 @@ class PedidoService:
             if p is None:
                 raise ProductoNoComprableEnPedidoError(producto_id, "no existe")
             _validar_estado_producto_para_linea(producto_id, cantidad_total, p)
+        _validar_stock_ingredientes_para_lineas(uow, lineas)
 
     def transicionar_estado(
         self,
@@ -305,7 +344,7 @@ class PedidoService:
 
         if actual == EstadoPedido.PENDIENTE and nuevo_estado == EstadoPedido.CONFIRMADO:
             validar_mesa_retiro_antes_aprobar_pago(uow, pedido)
-            _descontar_stock_al_confirmar(uow, pedido_id)
+            _descontar_inventario_al_confirmar(uow, pedido_id)
 
         registro = HistorialEstadoPedido(
             pedido_id=pedido.id,
