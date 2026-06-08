@@ -56,7 +56,7 @@ export function CatalogoPage() {
   };
 
   return (
-    <div className="min-w-0 max-w-full max-md:overflow-x-clip space-y-6 pb-16 max-md:px-0 sm:pb-20 md:space-y-12 md:overflow-x-visible">
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col space-y-6 overflow-x-clip pb-16 sm:pb-20 md:space-y-12">
       {/* Hero Section */}
       <section className="relative max-w-full overflow-hidden rounded-2xl bg-slate-950 px-3 py-6 text-center shadow-2xl sm:px-4 sm:py-8 md:rounded-[2rem] md:px-12 md:py-20">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,_var(--tw-gradient-stops))] from-slate-900 via-slate-950 to-black opacity-100"></div>

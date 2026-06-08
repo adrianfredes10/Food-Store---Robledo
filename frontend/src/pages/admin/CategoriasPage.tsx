@@ -197,17 +197,17 @@ export function AdminCategoriasPage() {
 
   function filaAcciones(c: CategoriaRead) {
     return (
-      <div className="flex flex-wrap justify-end gap-3">
+      <div className="flex flex-wrap justify-end gap-1.5">
         <button
           type="button"
-          className="text-xs font-bold uppercase tracking-widest text-muted hover:text-primary transition-colors"
+          className="text-[10px] font-bold uppercase tracking-widest text-muted transition-colors hover:text-primary"
           onClick={() => abrirEditar(c)}
         >
           Editar
         </button>
         <button
           type="button"
-          className="text-xs font-bold uppercase tracking-widest text-danger hover:text-danger/80 transition-colors"
+          className="text-[10px] font-bold uppercase tracking-widest text-danger transition-colors hover:text-danger/80"
           onClick={() => setDeleteTarget(c)}
         >
           Eliminar
@@ -216,74 +216,77 @@ export function AdminCategoriasPage() {
     );
   }
 
-  return (
-    <div className="min-w-0 max-w-full space-y-8 pb-16 max-md:overflow-x-clip sm:space-y-8 sm:pb-20 md:overflow-x-visible">
-      <section className="rounded-2xl border border-border bg-white p-4 shadow-sm max-md:px-3 md:p-6">
-        <p className="text-xs font-medium text-muted leading-relaxed max-w-3xl">
-          <span className="font-bold text-primary">Categorías raíz</span> son las principales del menú. Las{" "}
-          <span className="font-bold text-primary">subcategorías</span> dependen de una raíz (u otra categoría)
-          y se listan con su padre a la derecha.
-        </p>
-      </section>
+  function badgeEstado(activo: boolean) {
+    return (
+      <span
+        className={`inline-block rounded-full border px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest ${
+          activo
+            ? "border-success/25 bg-success/10 text-success"
+            : "border-muted/20 bg-muted/10 text-muted"
+        }`}
+      >
+        {activo ? "Activo" : "Inactivo"}
+      </span>
+    );
+  }
 
-      <div className="grid min-w-0 gap-6 lg:grid-cols-2">
+  const theadCategorias = (
+    <thead className="border-b border-border">
+      <tr>
+        <th>Nombre</th>
+        <th className="hidden sm:table-cell">Orden</th>
+        <th>Estado</th>
+        <th className="text-right">Acciones</th>
+      </tr>
+    </thead>
+  );
+
+  const theadSubcategorias = (
+    <thead className="border-b border-border">
+      <tr>
+        <th>Nombre</th>
+        <th>Padre</th>
+        <th className="hidden sm:table-cell">Orden</th>
+        <th>Estado</th>
+        <th className="text-right">Acciones</th>
+      </tr>
+    </thead>
+  );
+
+  return (
+    <div className="flex h-full min-h-0 flex-col">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain lg:overflow-hidden lg:grid lg:grid-cols-2 lg:gap-3">
         {/* Panel categorías raíz */}
-        <div className="min-w-0 flex flex-col gap-4 rounded-2xl border border-border bg-white p-4 shadow-sm max-md:px-3 md:p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-sm font-bold uppercase tracking-widest text-primary">Categorías raíz</h2>
-            <button
-              type="button"
-              onClick={abrirCrearRaiz}
-              className="rounded-xl shrink-0 bg-primary px-5 py-2.5 text-xs font-bold text-white hover:bg-primary-hover shadow-sm transition-all"
-            >
-              Nueva categoría
+        <section className="mb-3 flex min-w-0 flex-col rounded-xl border border-border bg-white p-2 shadow-sm last:mb-0 lg:mb-0 lg:min-h-0 lg:p-3">
+          <div className="mb-2 flex items-center justify-between gap-2 border-b border-border/80 pb-2 lg:border-0 lg:pb-0">
+            <h2 className="text-[10px] font-bold uppercase tracking-widest text-primary">Categorías raíz</h2>
+            <button type="button" onClick={abrirCrearRaiz} className="admin-btn-primary">
+              + Nuevo
             </button>
           </div>
-          <div className="max-w-full overflow-hidden rounded-xl border border-border">
-            <div className="max-h-[min(28rem,55vh)] overflow-y-auto overscroll-y-contain">
-              <table className="w-full min-w-0 border-collapse text-left">
-                <thead className="sticky top-0 bg-bg-secondary border-b border-border z-[1]">
-                  <tr>
-                    <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-muted md:px-4 md:text-xs">
-                      Nombre
-                    </th>
-                    <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-muted md:px-4 md:text-xs">
-                      Orden
-                    </th>
-                    <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-muted md:px-4 md:text-xs">
-                      Estado
-                    </th>
-                    <th className="px-3 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-muted md:px-4 md:text-xs">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
+          <div className="lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-hidden lg:rounded-xl lg:border lg:border-border">
+            <div className="lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-y-contain">
+              <table className="admin-table w-full min-w-0 border-collapse text-left">
+                {theadCategorias}
                 <tbody className="divide-y divide-border">
                   {categoriasRaiz.length === 0 ? (
                     <tr>
-                      <td colSpan={4} className="px-4 py-10 text-center text-xs font-bold uppercase tracking-widest text-muted">
+                      <td
+                        colSpan={4}
+                        className="py-8 text-center text-[10px] font-bold uppercase tracking-widest text-muted"
+                      >
                         No hay categorías raíz. Creá la primera.
                       </td>
                     </tr>
                   ) : (
                     categoriasRaiz.map((c) => (
-                      <tr key={c.id} className="hover:bg-bg-secondary/50 transition-colors">
-                        <td className="px-3 py-3 md:px-4">
-                          <span className="text-sm font-bold text-primary">{c.nombre}</span>
+                      <tr key={c.id} className="transition-colors hover:bg-bg-secondary/50">
+                        <td>
+                          <span className="text-xs font-bold text-primary">{c.nombre}</span>
                         </td>
-                        <td className="px-3 py-3 font-outfit text-sm font-black text-primary md:px-4">{c.orden}</td>
-                        <td className="px-3 py-3 md:px-4">
-                          <span
-                            className={`inline-block rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest md:px-3 md:text-[10px] ${
-                              c.activo
-                                ? "border-accent/20 bg-accent/10 text-accent"
-                                : "border-muted/20 bg-muted/10 text-muted"
-                            }`}
-                          >
-                            {c.activo ? "Activo" : "Inactivo"}
-                          </span>
-                        </td>
-                        <td className="px-3 py-3 text-right md:px-4">{filaAcciones(c)}</td>
+                        <td className="hidden font-outfit text-xs font-black text-primary sm:table-cell">{c.orden}</td>
+                        <td>{badgeEstado(c.activo)}</td>
+                        <td className="text-right">{filaAcciones(c)}</td>
                       </tr>
                     ))
                   )}
@@ -291,84 +294,114 @@ export function AdminCategoriasPage() {
               </table>
             </div>
           </div>
-        </div>
+        </section>
 
         {/* Panel subcategorías */}
-        <div className="min-w-0 flex flex-col gap-4 rounded-2xl border border-border bg-white p-4 shadow-sm max-md:px-3 md:p-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <h2 className="text-sm font-bold uppercase tracking-widest text-primary">Subcategorías</h2>
+        <section className="flex min-w-0 flex-col rounded-xl border border-border bg-white p-2 shadow-sm lg:min-h-0 lg:p-3">
+          <div className="mb-2 flex items-center justify-between gap-2 border-b border-border/80 pb-2 lg:border-0 lg:pb-0">
+            <h2 className="text-[10px] font-bold uppercase tracking-widest text-primary">Subcategorías</h2>
             <button
               type="button"
               onClick={abrirCrearSubcategoria}
               disabled={categoriasRaiz.length === 0}
-              className="rounded-xl shrink-0 bg-accent px-5 py-2.5 text-xs font-bold text-white shadow-sm transition-all hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-50"
+              className="admin-btn-primary disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Nueva subcategoría
+              + Nuevo
             </button>
           </div>
-          <div className="max-w-full overflow-hidden rounded-xl border border-border">
-            <div className="max-h-[min(28rem,55vh)] overflow-y-auto overscroll-y-contain">
-              <table className="w-full min-w-0 border-collapse text-left">
-                <thead className="sticky top-0 bg-bg-secondary border-b border-border z-[1]">
-                  <tr>
-                    <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-muted md:px-4 md:text-xs">
-                      Nombre
-                    </th>
-                    <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-muted md:px-4 md:text-xs">
-                      Categoría padre
-                    </th>
-                    <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-muted md:px-4 md:text-xs">
-                      Orden
-                    </th>
-                    <th className="px-3 py-3 text-[10px] font-bold uppercase tracking-widest text-muted md:px-4 md:text-xs">
-                      Estado
-                    </th>
-                    <th className="px-3 py-3 text-right text-[10px] font-bold uppercase tracking-widest text-muted md:px-4 md:text-xs">
-                      Acciones
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border">
-                  {subcategorias.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-4 py-10 text-center text-xs font-bold uppercase tracking-widest text-muted">
-                        {categoriasRaiz.length === 0
-                          ? "Primero creá categorías raíz."
-                          : "No hay subcategorías. Usá «Nueva subcategoría»."}
-                      </td>
-                    </tr>
-                  ) : (
-                    subcategorias.map((c) => {
-                      const padreNombre =
-                        c.parent_id === null ? "—" : (porId.get(c.parent_id)?.nombre ?? "—");
+
+          {subcategorias.length === 0 ? (
+            <p className="rounded-lg border border-border/60 bg-bg-secondary/60 px-3 py-4 text-center text-[10px] font-bold uppercase tracking-widest text-muted">
+              {categoriasRaiz.length === 0
+                ? "Primero creá categorías raíz."
+                : "No hay subcategorías. Usá «+ Nuevo»."}
+            </p>
+          ) : (
+            <>
+              {/* Mobile: tabla única compacta con scroll de página */}
+              <div className="lg:hidden">
+                <table className="admin-table w-full min-w-0 border-collapse text-left">
+                  {theadSubcategorias}
+                  <tbody className="divide-y divide-border">
+                    {subcategorias.map((c) => (
+                      <tr key={c.id} className="transition-colors hover:bg-bg-secondary/50">
+                        <td>
+                          <span className="text-xs font-bold text-primary">{c.nombre}</span>
+                        </td>
+                        <td className="max-w-[5.5rem] truncate text-[10px] font-bold text-muted">
+                          {c.parent_id === null ? "—" : (porId.get(c.parent_id)?.nombre ?? "—")}
+                        </td>
+                        <td className="hidden font-outfit text-xs font-black text-muted sm:table-cell">{c.orden}</td>
+                        <td>{badgeEstado(c.activo)}</td>
+                        <td className="text-right">{filaAcciones(c)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Desktop: agrupadas por categoría padre */}
+              <div className="hidden min-h-0 flex-1 flex-col overflow-hidden lg:flex">
+                <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-y-contain">
+                  {categoriasRaiz
+                    .map((raiz) => {
+                      const hijos = subcategorias.filter((s) => s.parent_id === raiz.id);
+                      if (hijos.length === 0) return null;
                       return (
-                        <tr key={c.id} className="hover:bg-bg-secondary/50 transition-colors">
-                          <td className="px-3 py-3 md:px-4">
-                            <span className="text-sm font-bold text-primary">{c.nombre}</span>
-                          </td>
-                          <td className="px-3 py-3 text-sm font-bold text-accent md:px-4">{padreNombre}</td>
-                          <td className="px-3 py-3 font-outfit text-sm font-black text-primary md:px-4">{c.orden}</td>
-                          <td className="px-3 py-3 md:px-4">
-                            <span
-                              className={`inline-block rounded-full border px-2.5 py-1 text-[9px] font-bold uppercase tracking-widest md:px-3 md:text-[10px] ${
-                                c.activo
-                                  ? "border-accent/20 bg-accent/10 text-accent"
-                                  : "border-muted/20 bg-muted/10 text-muted"
-                              }`}
-                            >
-                              {c.activo ? "Activo" : "Inactivo"}
+                        <div key={raiz.id} className="overflow-hidden rounded-xl border border-border">
+                          <div className="sticky top-0 z-[1] flex items-center gap-2 border-b border-border bg-bg-secondary px-2 py-1.5">
+                            <span className="text-[9px] font-bold uppercase tracking-widest text-accent">{raiz.nombre}</span>
+                            <span className="ml-auto rounded-full bg-accent/10 px-1.5 py-0.5 text-[8px] font-bold text-accent">
+                              {hijos.length}
                             </span>
-                          </td>
-                          <td className="px-3 py-3 text-right md:px-4">{filaAcciones(c)}</td>
-                        </tr>
+                          </div>
+                          <table className="admin-table w-full min-w-0 border-collapse text-left">
+                            <tbody className="divide-y divide-border">
+                              {hijos.map((c) => (
+                                <tr key={c.id} className="transition-colors hover:bg-bg-secondary/50">
+                                  <td>
+                                    <span className="text-xs font-bold text-primary">{c.nombre}</span>
+                                  </td>
+                                  <td className="font-outfit text-xs font-black text-muted">{c.orden}</td>
+                                  <td>{badgeEstado(c.activo)}</td>
+                                  <td className="text-right">{filaAcciones(c)}</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
                       );
                     })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+                    .filter(Boolean)}
+                  {subcategorias.filter((s) => !categoriasRaiz.some((r) => r.id === s.parent_id)).length > 0 ? (
+                    <div className="overflow-hidden rounded-xl border border-border">
+                      <div className="flex items-center gap-2 border-b border-border bg-bg-secondary px-2 py-1.5">
+                        <span className="text-[9px] font-bold uppercase tracking-widest text-muted">Otras</span>
+                      </div>
+                      <table className="admin-table w-full min-w-0 border-collapse text-left">
+                        <tbody className="divide-y divide-border">
+                          {subcategorias
+                            .filter((s) => !categoriasRaiz.some((r) => r.id === s.parent_id))
+                            .map((c) => (
+                              <tr key={c.id} className="transition-colors hover:bg-bg-secondary/50">
+                                <td>
+                                  <span className="text-xs font-bold text-primary">{c.nombre}</span>
+                                </td>
+                                <td className="text-xs font-bold text-accent">
+                                  {c.parent_id === null ? "—" : (porId.get(c.parent_id)?.nombre ?? "—")}
+                                </td>
+                                <td className="text-right">{filaAcciones(c)}</td>
+                              </tr>
+                            ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+            </>
+          )}
+        </section>
       </div>
 
       {modalMode !== "closed" && (

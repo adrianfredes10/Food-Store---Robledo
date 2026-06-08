@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.uow.unit_of_work import UnitOfWork
 from app.deps.uow import get_uow
-from app.deps.roles import require_admin
+from app.deps.roles import get_user_roles, require_admin, require_pedidos_o_admin
 from app.modules.admin import service as admin_service
 from app.modules.admin.schemas import (
     AdminPedidosPage,
@@ -15,6 +15,7 @@ from app.modules.pedidos.exceptions import (
     ErrorDominioPedido,
     MesaOcupadaParaPedidoError,
     PedidoNoEncontradoError,
+    TransicionPedidoNoAutorizadaError,
 )
 from app.modules.usuarios.model import Usuario
 
@@ -22,6 +23,10 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 def _map_pedido_domain(exc: ErrorDominioPedido) -> HTTPException:
+    if isinstance(exc, PedidoNoEncontradoError):
+        return HTTPException(status.HTTP_404_NOT_FOUND, detail=str(exc))
+    if isinstance(exc, TransicionPedidoNoAutorizadaError):
+        return HTTPException(status.HTTP_403_FORBIDDEN, detail=str(exc))
     if isinstance(exc, MesaOcupadaParaPedidoError):
         return HTTPException(status.HTTP_409_CONFLICT, detail=str(exc))
     return HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(exc))
@@ -71,7 +76,8 @@ def admin_obtener_pedido(
 def admin_transicion_pedido(
     pedido_id: int,
     body: AdminPedidoTransicionRequest,
-    usuario: Usuario = Depends(require_admin),
+    usuario: Usuario = Depends(require_pedidos_o_admin),
+    roles: frozenset[str] = Depends(get_user_roles),
     uow: UnitOfWork = Depends(get_uow),
 ) -> PedidoAdminDetalleResponse:
     # aplico la transición de estado y después devuelvo el pedido actualizado
@@ -81,6 +87,7 @@ def admin_transicion_pedido(
             pedido_id,
             body.estado.strip(),
             actor_usuario_id=usuario.id,
+            roles_actor=roles,
         )
     except ValueError as e:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(e)) from e

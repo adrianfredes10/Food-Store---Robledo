@@ -35,7 +35,7 @@ Siempre que se trabaje en el repo (investigar, analizar, escribir código, refac
 | Backend | FastAPI + SQLModel + PostgreSQL + Alembic · Feature-First (Router → Service → UoW → Repository → Model) |
 | Frontend | React 18 + TypeScript + Vite + Tailwind CSS · Feature-Sliced Design (FSD) |
 | Pagos | MercadoPago Checkout API (tarjeta, Rapipago, Pago Fácil) + webhooks IPN |
-| Auth | JWT + RBAC (4 roles: CLIENT, ADMIN, STOCK, PEDIDOS) + refresh token en BD |
+| Auth | JWT + RBAC (5 roles: CLIENT, ADMIN, STOCK, PEDIDOS, COCINA) + refresh token en BD |
 | Estado | Zustand 4 (cliente) + TanStack Query 5 (servidor) |
 | Metodología | Spec-Driven Development (SDD) · versión de spec: 5.0 |
 
@@ -62,6 +62,7 @@ FoodStore/
 │   │   │   ├── direcciones_entrega/
 │   │   │   ├── admin/
 │   │   │   ├── mesas/
+│   │   │   ├── cocina/
 │   │   │   └── refreshtokens/
 │   │   └── integrations/      # terceros (Groq imagen, etc.)
 │   ├── alembic/               # migraciones

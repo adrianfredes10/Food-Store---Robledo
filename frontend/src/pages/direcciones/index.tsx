@@ -22,7 +22,6 @@ const emptyForm = {
 export function DireccionesPage() {
   const hydrated = useAuthHydrated();
   const token = useAuthStore((s) => s.access_token);
-  // cargo las direcciones guardadas del usuario
   const { data = [], isLoading } = useDirecciones();
   const { crear, actualizar, eliminar } = useDireccionesMutations();
   const marcarPrincipal = useMarcarPrincipal();
@@ -32,265 +31,252 @@ export function DireccionesPage() {
 
   if (!hydrated) {
     return (
-      <div className="flex items-center justify-center py-12 md:py-20">
+      <div className="flex items-center justify-center py-8 md:py-12">
         <p className="text-sm font-bold uppercase tracking-widest text-muted animate-pulse">Sincronizando...</p>
       </div>
     );
   }
-  
+
   if (!token) return <Navigate to="/login" replace />;
 
+  const inputClass =
+    "mt-0.5 w-full rounded-lg border border-border bg-bg-secondary px-2.5 py-2 text-xs font-bold text-primary transition-all placeholder:text-muted/50 focus:border-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary sm:text-sm";
+
   return (
-    <div className="mx-auto max-w-6xl w-full py-4 sm:py-8 lg:py-12 fade-in px-4 lg:px-0">
-      <header className="mb-6 md:mb-12 text-center md:text-left flex flex-col md:flex-row md:items-end md:justify-between gap-4">
-        <div>
-            <h1 className="text-2xl md:text-4xl font-black text-primary font-outfit uppercase tracking-tight mb-2">
-            Direcciones
-            </h1>
-            <p className="text-xs font-bold uppercase tracking-widest text-muted">Gestión de puntos de entrega</p>
-        </div>
-        <Link
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-1.5 overflow-x-clip pb-1 fade-in lg:pb-0">
+      <header className="shrink-0 border-b border-border pb-1.5">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div className="min-w-0">
+            <h1 className="font-outfit text-lg font-black tracking-tight text-primary sm:text-xl">Direcciones</h1>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-muted sm:text-[10px]">
+              Para envíos y checkout
+            </p>
+          </div>
+          <Link
             to="/mis-pedidos"
-            className="md:shrink-0 inline-block text-xs font-bold uppercase tracking-widest text-accent hover:text-accent-hover hover:underline underline-offset-4 transition-colors"
-        >
+            className="shrink-0 text-[10px] font-bold uppercase tracking-wide text-primary underline-offset-2 transition-colors hover:underline sm:text-xs"
+          >
             Mis pedidos
-        </Link>
+          </Link>
+        </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative pb-8">
-        {/* Form Column -> lg:col-span-5 */}
-        <div className="lg:col-span-5 space-y-6 lg:sticky lg:top-24 order-2 lg:order-1">
-            <section className="bg-white rounded-2xl border border-border p-6 sm:p-8 shadow-sm">
-                <h2 className="text-sm font-bold text-primary uppercase tracking-widest mb-6 border-b border-border pb-4 flex items-center gap-2">
-                    <MapPin size={18} className="text-muted" /> 
-                    {editingId ? "Editar Dirección" : "Nueva Dirección"}
-                </h2>
-                
-                <form
-                    className="space-y-5"
-                    onSubmit={(e) => {
-                        e.preventDefault();
-                        if (!form.calle.trim() || !form.numero.trim() || !form.ciudad.trim() || !form.codigo_postal.trim()) return;
-                        
-                        const payload = {
-                            alias: form.alias.trim() || null,
-                            calle: form.calle.trim(),
-                            numero: form.numero.trim(),
-                            piso_dpto: form.piso_dpto.trim() || null,
-                            ciudad: form.ciudad.trim(),
-                            codigo_postal: form.codigo_postal.trim(),
-                            referencias: form.referencias.trim() || null,
-                            es_principal: form.es_principal,
-                        };
+      <div className="grid min-h-0 flex-1 grid-cols-1 gap-2 lg:grid-cols-12 lg:gap-3 lg:overflow-hidden">
+        {/* Lista: primera en móvil; scroll interno en desktop */}
+        <div className="order-1 flex min-h-0 flex-col lg:order-2 lg:col-span-7">
+          <h2 className="mb-1 flex shrink-0 items-center gap-1.5 border-b border-border pb-1 text-[10px] font-bold uppercase tracking-widest text-primary sm:text-[11px]">
+            <MapPinned className="h-3.5 w-3.5 shrink-0 text-muted" strokeWidth={2} aria-hidden />
+            Mis direcciones
+          </h2>
 
-                        // si hay id es edición, sino es creación nueva
-                        if (editingId) {
-                            actualizar.mutate({ id: editingId, body: payload }, {
-                                onSuccess: () => {
-                                    setEditingId(null);
-                                    setForm(emptyForm);
-                                }
-                            });
-                        } else {
-                            crear.mutate(payload, {
-                                onSuccess: () => setForm(emptyForm)
-                            });
-                        }
-                    }}
-                >
-                    <FormField label="Alias (ej: Casa, Trabajo)">
-                        <input
-                            className="mt-1 w-full rounded-xl border border-border bg-bg-secondary px-4 py-3 text-sm font-bold text-primary focus:border-accent focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent transition-all placeholder:text-muted/50"
-                            placeholder="Dejar en blanco para usar la calle"
-                            value={form.alias}
-                            onChange={(e) => setForm((f) => ({ ...f, alias: e.target.value }))}
-                        />
-                    </FormField>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <FormField label="Calle *" className="col-span-1">
-                            <input
-                                required
-                                className="mt-1 w-full rounded-xl border border-border bg-bg-secondary px-4 py-3 text-sm font-bold text-primary focus:border-accent focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent transition-all"
-                                value={form.calle}
-                                onChange={(e) => setForm((f) => ({ ...f, calle: e.target.value }))}
-                            />
-                        </FormField>
-                        <FormField label="Número *" className="col-span-1">
-                            <input
-                                required
-                                className="mt-1 w-full rounded-xl border border-border bg-bg-secondary px-4 py-3 text-sm font-bold text-primary focus:border-accent focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent transition-all"
-                                value={form.numero}
-                                onChange={(e) => setForm((f) => ({ ...f, numero: e.target.value }))}
-                            />
-                        </FormField>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <FormField label="Piso / Dpto" className="col-span-1">
-                            <input
-                                className="mt-1 w-full rounded-xl border border-border bg-bg-secondary px-4 py-3 text-sm font-bold text-primary focus:border-accent focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent transition-all"
-                                value={form.piso_dpto}
-                                onChange={(e) => setForm((f) => ({ ...f, piso_dpto: e.target.value }))}
-                            />
-                        </FormField>
-                        <FormField label="Ciudad *" className="col-span-1">
-                            <input
-                                required
-                                className="mt-1 w-full rounded-xl border border-border bg-bg-secondary px-4 py-3 text-sm font-bold text-primary focus:border-accent focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent transition-all"
-                                value={form.ciudad}
-                                onChange={(e) => setForm((f) => ({ ...f, ciudad: e.target.value }))}
-                            />
-                        </FormField>
-                    </div>
-
-                    <FormField label="Código Postal *">
-                        <input
-                            required
-                            className="mt-1 w-full rounded-xl border border-border bg-bg-secondary px-4 py-3 text-sm font-bold text-primary focus:border-accent focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent transition-all"
-                            value={form.codigo_postal}
-                            onChange={(e) => setForm((f) => ({ ...f, codigo_postal: e.target.value }))}
-                        />
-                    </FormField>
-
-                    <div className="pt-2 flex items-center gap-3">
-                        <input
-                            type="checkbox"
-                            id="esPrincipal"
-                            className="w-4 h-4 rounded border-border text-accent focus:ring-accent cursor-pointer object-contain"
-                            checked={form.es_principal}
-                            onChange={(e) => setForm((f) => ({ ...f, es_principal: e.target.checked }))}
-                        />
-                        <label htmlFor="esPrincipal" className="text-xs font-bold text-muted uppercase tracking-widest cursor-pointer select-none">
-                            Definir como principal
-                        </label>
-                    </div>
-
-                    <div className="pt-4 flex flex-col gap-3">
-                        <LoadingButton
-                            type="submit"
-                            isLoading={crear.isPending || actualizar.isPending}
-                            className="w-full py-4 bg-primary text-white font-bold text-sm tracking-wide rounded-xl hover:bg-primary-hover shadow-sm"
-                        >
-                            {editingId ? "Guardar cambios" : "Registrar Dirección"}
-                        </LoadingButton>
-                        
-                        {editingId && (
-                            <button 
-                                type="button" 
-                                className="w-full py-4 border border-border bg-white text-muted font-bold text-sm tracking-wide rounded-xl hover:bg-bg-secondary transition-colors"
-                                onClick={() => {
-                                    setEditingId(null);
-                                    setForm(emptyForm);
-                                }}
-                            >
-                                Cancelar edición
-                            </button>
-                        )}
-                    </div>
-                </form>
-            </section>
-        </div>
-
-        {/* List Column -> lg:col-span-7 */}
-        <div className="lg:col-span-7 order-1 lg:order-2">
-            <h2 className="mb-6 md:mb-8 text-sm font-bold text-primary uppercase tracking-widest flex items-center gap-2 border-b border-border pb-4">
-                <MapPinned size={18} className="text-muted" /> MIS DIRECCIONES
-            </h2>
-
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-0.5 [scrollbar-gutter:stable]">
             {isLoading && (
-                <div className="space-y-4">
-                    {[1, 2, 3].map((i) => (
-                        <div key={i} className="h-32 bg-bg-secondary rounded-2xl animate-pulse border border-border"></div>
-                    ))}
-                </div>
+              <div className="space-y-2 pt-1">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="h-20 animate-pulse rounded-lg border border-border bg-bg-secondary sm:h-[5.25rem]"
+                  />
+                ))}
+              </div>
             )}
 
             {!isLoading && data.length === 0 && (
+              <div className="pt-2">
                 <EmptyState
-                    titulo="No tenés direcciones guardadas"
-                    descripcion="Agregá tu primera dirección desde el formulario para poder recibir tus pedidos."
-                    icon={MapPin}
+                  titulo="Sin direcciones"
+                  descripcion="Cargá una dirección con el formulario al lado (o abajo en móvil)."
+                  icon={MapPin}
                 />
+              </div>
             )}
 
             {!isLoading && data.length > 0 && (
-                <ul className="space-y-4">
-                    {data.map((d) => (
-                    <li key={d.id} className={`rounded-2xl bg-white p-6 transition-all border ${editingId === d.id ? 'border-accent shadow-sm' : 'border-border shadow-sm hover:border-accent/50'}`}>
-                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
-                            <div className="flex-1">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <span className="text-xs font-black text-primary uppercase tracking-widest">
-                                        {d.alias ?? "Dirección"}
-                                    </span>
-                                    {d.es_principal && (
-                                        <span className="inline-flex items-center gap-1 rounded-full bg-accent/10 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-accent border border-accent/20">
-                                            <Star className="h-3 w-3 fill-accent text-accent" />
-                                            Principal
-                                        </span>
-                                    )}
-                                </div>
-                                <p className="text-lg font-black text-primary font-outfit mb-1 break-words">
-                                    {d.calle} {d.numero} {d.piso_dpto && `— Dpto: ${d.piso_dpto}`}
-                                </p>
-                                <p className="text-sm text-muted leading-relaxed">
-                                    {d.ciudad} (CP {d.codigo_postal})
-                                </p>
-                            </div>
-                            
-                            <div className="flex sm:flex-col items-center sm:items-end gap-3 sm:gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-border">
-                                <button
-                                    type="button"
-                                    className="text-xs font-bold text-accent hover:text-accent-hover transition-colors uppercase tracking-widest whitespace-nowrap"
-                                    onClick={() => {
-                                        setEditingId(d.id);
-                                        setForm({
-                                            alias: d.alias ?? "",
-                                            calle: d.calle,
-                                            numero: d.numero,
-                                            piso_dpto: d.piso_dpto ?? "",
-                                            ciudad: d.ciudad,
-                                            codigo_postal: d.codigo_postal,
-                                            referencias: d.referencias ?? "",
-                                            es_principal: d.es_principal,
-                                        });
-                                        // Scroll to form smoothly
-                                        window.scrollTo({ top: 0, behavior: 'smooth' });
-                                    }}
-                                >
-                                    Editar
-                                </button>
-                                
-                                {!d.es_principal && (
-                                    <button
-                                        type="button"
-                                        disabled={marcarPrincipal.isPending}
-                                        className="text-xs font-bold text-muted hover:text-primary transition-colors uppercase tracking-widest disabled:opacity-50 whitespace-nowrap"
-                                        onClick={() =>
-                                            marcarPrincipal.mutate(d.id, {
-                                            onSuccess: () => toast.success("Dirección principal actualizada"),
-                                            onError: () => toast.error("Hubo un error al actualizar"),
-                                            })
-                                        }
-                                    >
-                                        Hacer Principal
-                                    </button>
-                                )}
-                                
-                                <button
-                                    type="button"
-                                    className="text-xs font-bold text-danger hover:text-danger/80 transition-colors uppercase tracking-widest whitespace-nowrap"
-                                    onClick={() => setDeleteId(d.id)}
-                                >
-                                    Eliminar
-                                </button>
-                            </div>
+              <ul className="space-y-2 pt-1">
+                {data.map((d) => (
+                  <li
+                    key={d.id}
+                    className={`rounded-lg border bg-white p-2.5 shadow-sm transition-all sm:p-3 ${
+                      editingId === d.id ? "border-primary ring-1 ring-primary/20" : "border-border hover:border-primary/30"
+                    }`}
+                  >
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="mb-0.5 flex flex-wrap items-center gap-1.5">
+                          <span className="text-[10px] font-black uppercase tracking-widest text-primary sm:text-xs">
+                            {d.alias ?? "Dirección"}
+                          </span>
+                          {d.es_principal && (
+                            <span className="inline-flex items-center gap-0.5 rounded-full border border-primary/20 bg-primary/10 px-1.5 py-px text-[9px] font-bold uppercase tracking-wide text-primary">
+                              <Star className="h-2.5 w-2.5 fill-primary text-primary" />
+                              Principal
+                            </span>
+                          )}
                         </div>
-                    </li>
-                    ))}
-                </ul>
+                        <p className="font-outfit text-sm font-black leading-snug text-primary sm:text-base">
+                          {d.calle} {d.numero}
+                          {d.piso_dpto ? ` · ${d.piso_dpto}` : ""}
+                        </p>
+                        <p className="text-[11px] text-muted sm:text-xs">
+                          {d.ciudad} (CP {d.codigo_postal})
+                        </p>
+                      </div>
+
+                      <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 border-t border-border pt-2 sm:flex-col sm:items-end sm:border-t-0 sm:pt-0">
+                        <button
+                          type="button"
+                          className="text-[10px] font-bold uppercase tracking-wide text-primary transition-colors hover:underline sm:text-xs"
+                          onClick={() => {
+                            setEditingId(d.id);
+                            setForm({
+                              alias: d.alias ?? "",
+                              calle: d.calle,
+                              numero: d.numero,
+                              piso_dpto: d.piso_dpto ?? "",
+                              ciudad: d.ciudad,
+                              codigo_postal: d.codigo_postal,
+                              referencias: d.referencias ?? "",
+                              es_principal: d.es_principal,
+                            });
+                          }}
+                        >
+                          Editar
+                        </button>
+                        {!d.es_principal && (
+                          <button
+                            type="button"
+                            disabled={marcarPrincipal.isPending}
+                            className="text-[10px] font-bold uppercase tracking-wide text-muted transition-colors hover:text-primary disabled:opacity-50 sm:text-xs"
+                            onClick={() =>
+                              marcarPrincipal.mutate(d.id, {
+                                onSuccess: () => toast.success("Dirección principal actualizada"),
+                                onError: () => toast.error("Hubo un error al actualizar"),
+                              })
+                            }
+                          >
+                            Principal
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          className="text-[10px] font-bold uppercase tracking-wide text-danger transition-colors hover:text-danger/80 sm:text-xs"
+                          onClick={() => setDeleteId(d.id)}
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </div>
+                  </li>
+                ))}
+              </ul>
             )}
+          </div>
+        </div>
+
+        {/* Formulario */}
+        <div className="order-2 flex min-h-0 flex-col lg:order-1 lg:col-span-5 lg:overflow-y-auto lg:overscroll-contain lg:pr-1 lg:[scrollbar-gutter:stable]">
+          <section className="rounded-lg border border-border bg-white p-2.5 shadow-sm sm:p-3">
+            <h2 className="mb-2 flex items-center gap-1.5 border-b border-border pb-1.5 text-[10px] font-bold uppercase tracking-widest text-primary sm:text-[11px]">
+              <MapPin className="h-3.5 w-3.5 shrink-0 text-muted" strokeWidth={2} aria-hidden />
+              {editingId ? "Editar" : "Nueva"}
+            </h2>
+
+            <form
+              className="space-y-2 sm:space-y-2.5"
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!form.calle.trim() || !form.numero.trim() || !form.ciudad.trim() || !form.codigo_postal.trim()) return;
+
+                const payload = {
+                  alias: form.alias.trim() || null,
+                  calle: form.calle.trim(),
+                  numero: form.numero.trim(),
+                  piso_dpto: form.piso_dpto.trim() || null,
+                  ciudad: form.ciudad.trim(),
+                  codigo_postal: form.codigo_postal.trim(),
+                  referencias: form.referencias.trim() || null,
+                  es_principal: form.es_principal,
+                };
+
+                if (editingId) {
+                  actualizar.mutate(
+                    { id: editingId, body: payload },
+                    {
+                      onSuccess: () => {
+                        setEditingId(null);
+                        setForm(emptyForm);
+                      },
+                    },
+                  );
+                } else {
+                  crear.mutate(payload, {
+                    onSuccess: () => setForm(emptyForm),
+                  });
+                }
+              }}
+            >
+              <FormField label="Alias" className="[&_label]:text-[10px] [&_label]:sm:text-xs">
+                <input className={inputClass} placeholder="Casa, trabajo…" value={form.alias} onChange={(e) => setForm((f) => ({ ...f, alias: e.target.value }))} />
+              </FormField>
+
+              <div className="grid grid-cols-2 gap-2">
+                <FormField label="Calle *" className="col-span-1 [&_label]:text-[10px] [&_label]:sm:text-xs">
+                  <input required className={inputClass} value={form.calle} onChange={(e) => setForm((f) => ({ ...f, calle: e.target.value }))} />
+                </FormField>
+                <FormField label="Número *" className="col-span-1 [&_label]:text-[10px] [&_label]:sm:text-xs">
+                  <input required className={inputClass} value={form.numero} onChange={(e) => setForm((f) => ({ ...f, numero: e.target.value }))} />
+                </FormField>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <FormField label="Piso / Dpto" className="col-span-1 [&_label]:text-[10px] [&_label]:sm:text-xs">
+                  <input className={inputClass} value={form.piso_dpto} onChange={(e) => setForm((f) => ({ ...f, piso_dpto: e.target.value }))} />
+                </FormField>
+                <FormField label="Ciudad *" className="col-span-1 [&_label]:text-[10px] [&_label]:sm:text-xs">
+                  <input required className={inputClass} value={form.ciudad} onChange={(e) => setForm((f) => ({ ...f, ciudad: e.target.value }))} />
+                </FormField>
+              </div>
+
+              <FormField label="CP *" className="[&_label]:text-[10px] [&_label]:sm:text-xs">
+                <input required className={inputClass} value={form.codigo_postal} onChange={(e) => setForm((f) => ({ ...f, codigo_postal: e.target.value }))} />
+              </FormField>
+
+              <div className="flex items-center gap-2 pt-0.5">
+                <input
+                  type="checkbox"
+                  id="esPrincipal"
+                  className="h-3.5 w-3.5 cursor-pointer rounded border-border text-primary focus:ring-primary"
+                  checked={form.es_principal}
+                  onChange={(e) => setForm((f) => ({ ...f, es_principal: e.target.checked }))}
+                />
+                <label htmlFor="esPrincipal" className="cursor-pointer select-none text-[10px] font-bold uppercase tracking-wide text-muted sm:text-[11px]">
+                  Principal
+                </label>
+              </div>
+
+              <div className="flex flex-col gap-1.5 pt-1 sm:gap-2">
+                <LoadingButton
+                  type="submit"
+                  isLoading={crear.isPending || actualizar.isPending}
+                  className="w-full rounded-lg bg-primary py-2 text-xs font-bold tracking-wide text-white shadow-sm hover:bg-primary-hover sm:py-2.5 sm:text-sm"
+                >
+                  {editingId ? "Guardar" : "Registrar"}
+                </LoadingButton>
+                {editingId && (
+                  <button
+                    type="button"
+                    className="w-full rounded-lg border border-border bg-white py-2 text-xs font-bold tracking-wide text-muted transition-colors hover:bg-bg-secondary sm:text-sm"
+                    onClick={() => {
+                      setEditingId(null);
+                      setForm(emptyForm);
+                    }}
+                  >
+                    Cancelar
+                  </button>
+                )}
+              </div>
+            </form>
+          </section>
         </div>
       </div>
 
@@ -305,9 +291,7 @@ export function DireccionesPage() {
           setDeleteId(null);
         }}
       >
-        <p className="text-sm font-medium text-muted">
-            ¿Estás seguro que querés eliminar esta dirección? Esta acción no se puede deshacer.
-        </p>
+        <p className="text-xs font-medium text-muted sm:text-sm">¿Eliminar esta dirección? No se puede deshacer.</p>
       </ConfirmDialog>
     </div>
   );

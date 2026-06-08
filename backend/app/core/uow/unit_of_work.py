@@ -30,6 +30,7 @@ class UnitOfWork:
 
     __slots__ = (
         "_session",
+        "_pending_cocina_events",
         "_repo_auth",
         "_repo_usuarios",
         "_repo_productos",
@@ -46,6 +47,7 @@ class UnitOfWork:
 
     def __init__(self, session: Session) -> None:
         self._session = session
+        self._pending_cocina_events: list[dict[str, object]] = []
         self._repo_auth: AuthRepository | None = None
         self._repo_usuarios: UsuarioRepository | None = None
         self._repo_productos: ProductoRepository | None = None
@@ -144,3 +146,12 @@ class UnitOfWork:
     def flush(self) -> None:
         # útil para obtener el id generado antes de hacer el commit final
         self._session.flush()
+
+    def queue_cocina_event(self, event: dict[str, object]) -> None:
+        """Encola un evento WS de cocina; se emite tras commit exitoso (ver deps.uow)."""
+        self._pending_cocina_events.append(event)
+
+    def drain_cocina_events(self) -> list[dict[str, object]]:
+        events = list(self._pending_cocina_events)
+        self._pending_cocina_events.clear()
+        return events

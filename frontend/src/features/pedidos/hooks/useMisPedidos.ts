@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { pedidosClienteApi } from "@/shared/api/endpoints/pedidos";
 import { invalidatePedidosEverywhere } from "@/shared/lib/queryCacheSync";
 
-export function useMisPedidos(params?: { page?: number; estado?: string }) {
+export function useMisPedidos(params?: { page?: number; size?: number; estado?: string }) {
   // cargo los pedidos del back
   return useQuery({
     queryKey: ["mis-pedidos", params],

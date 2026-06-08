@@ -24,11 +24,11 @@ export function CartItem({ item }: Props) {
   const esExterna = Boolean(imgSrc && /^https?:\/\//i.test(imgSrc));
 
   return (
-    <div className="group flex flex-col justify-between gap-4 border-b border-border py-4 first:pt-0 last:border-0 last:pb-0 sm:flex-row sm:items-center sm:gap-6 sm:py-6">
+    <div className="group flex flex-col justify-between gap-2 border-b border-border py-2.5 first:pt-0 last:border-0 last:pb-0 sm:flex-row sm:items-center sm:gap-4 sm:py-3">
       
       {/* Izquierda: Imagen + Info */}
-      <div className="flex flex-1 items-start gap-3 md:gap-4 min-w-0">
-        <div className="h-[60px] w-[60px] shrink-0 overflow-hidden rounded-lg bg-bg-secondary border border-border">
+      <div className="flex flex-1 items-start gap-2.5 md:gap-3 min-w-0">
+        <div className="h-[52px] w-[52px] shrink-0 overflow-hidden rounded-lg bg-bg-secondary border border-border">
             {/* si tiene imagen la muestro, sino el placeholder */}
             {imgSrc ? (
               <img
@@ -59,7 +59,7 @@ export function CartItem({ item }: Props) {
       </div>
       
       {/* Derecha: Controles + Subtotal + Borrar */}
-      <div className="flex items-center justify-between gap-4 sm:justify-end sm:gap-6 pl-[72px] sm:pl-0">
+      <div className="flex items-center justify-between gap-3 sm:justify-end sm:gap-4 pl-[60px] sm:pl-0">
         {/* Controles de cantidad */}
         <div className="flex items-center gap-3 rounded-lg border border-border bg-bg-secondary px-2 py-1.5 shrink-0">
           <button
@@ -92,10 +92,10 @@ export function CartItem({ item }: Props) {
         <button
           type="button"
           onClick={() => removeItem(item.productoId, pers)}
-          className="text-muted hover:text-danger hover:bg-danger/10 transition-colors p-2 rounded-lg active:scale-90 shrink-0"
+          className="text-muted hover:text-danger hover:bg-danger/10 transition-colors p-1.5 rounded-lg active:scale-90 shrink-0"
           title="Eliminar del carrito"
         >
-          <Trash2 size={18} />
+          <Trash2 size={16} />
         </button>
       </div>
     </div>

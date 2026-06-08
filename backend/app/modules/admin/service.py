@@ -154,6 +154,7 @@ def transicionar_pedido_admin(
     estado_str: str,
     *,
     actor_usuario_id: int | None,
+    roles_actor: frozenset[str] | None = None,
 ) -> Pedido:
     # valido que el string sea un estado conocido antes de pasarlo al servicio
     try:
@@ -166,6 +167,7 @@ def transicionar_pedido_admin(
         pedido_id,
         nuevo,
         actor_usuario_id=actor_usuario_id,
+        roles_actor=roles_actor,
     )
 
 

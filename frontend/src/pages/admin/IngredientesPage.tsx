@@ -195,133 +195,101 @@ export function AdminIngredientesPage() {
   const estaVacio = filasOrdenadas.length === 0;
 
   return (
-    <div className="min-w-0 max-w-full max-md:overflow-x-clip space-y-8 pb-16 sm:space-y-8 sm:pb-20 md:overflow-x-visible">
-      <section className="box-border max-w-full overflow-hidden rounded-2xl border border-border bg-white p-4 shadow-sm max-md:px-3 md:p-6">
-        <p className="text-xs font-medium text-muted leading-relaxed">
-          Registrá aquí lo que comprás (ej.&nbsp;20 huevos). Al <span className="font-bold text-primary">confirmarse un pedido pagado</span>,
-          el sistema resta solo automáticamente según la <span className="font-bold text-primary">receta</span> de cada producto (cantidades en la
-          ficha del producto). Si el cliente saca un ingrediente opcional en el armado del plato, ese ítem no se descuenta.
-        </p>
-      </section>
+    <div className="flex h-full flex-col gap-2 min-h-0">
 
-      <section className="box-border max-w-full overflow-hidden rounded-2xl border border-border bg-white p-4 shadow-sm sm:flex sm:flex-row sm:items-center sm:justify-between sm:p-6 md:p-8 flex flex-col gap-4">
-        <h2 className="text-sm font-bold uppercase tracking-widest text-primary">
-          Ingredientes
-        </h2>
-        <button
-          type="button"
-          onClick={abrirCrear}
-          className="rounded-xl shrink-0 bg-primary px-6 py-3 text-sm font-bold text-white hover:bg-primary-hover shadow-sm transition-all"
-        >
-          Nuevo ingrediente
-        </button>
-      </section>
-
-      <section className="box-border max-w-full overflow-hidden rounded-2xl border border-border bg-white p-4 shadow-sm sm:p-6 md:p-8">
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <div className="space-y-2 lg:col-span-2">
-            <FormField label="Buscar por nombre">
-                <input
-                className="mt-1 w-full rounded-xl border border-border bg-bg-secondary px-4 py-3 text-sm font-bold text-primary focus:border-accent focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent transition-all"
-                value={searchInput}
-                onChange={(e) => setSearchInput(e.target.value)}
-                placeholder="Ej: leche, trigo..."
-                />
-            </FormField>
-          </div>
-          <div className="flex items-end gap-3 pb-3">
-            <label className="flex cursor-pointer items-center gap-3 text-xs font-bold uppercase tracking-widest text-muted hover:text-primary transition-colors">
-              <input
-                type="checkbox"
-                className="h-5 w-5 rounded-md border-border text-accent focus:ring-accent transition-colors"
-                checked={soloAlergenos}
-                onChange={(e) => setSoloAlergenos(e.target.checked)}
-              />
-              Solo alérgenos
-            </label>
-          </div>
+      {/* ── Header compacto ─────────────────────────────────────────────── */}
+      <section className="admin-panel shrink-0">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <h2 className="text-[10px] font-bold uppercase tracking-widest text-primary">Ingredientes</h2>
+          <button type="button" onClick={abrirCrear} className="admin-btn-primary">
+            + Nuevo
+          </button>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            className="min-w-0 flex-1 rounded-lg border border-border bg-bg-secondary px-2.5 py-1.5 text-xs font-bold text-primary placeholder:font-normal placeholder:text-muted focus:border-accent focus:bg-white outline-none transition-all"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Buscar ingrediente…"
+          />
+          <label className="flex shrink-0 cursor-pointer items-center gap-1.5 text-[10px] font-bold uppercase tracking-widest text-muted transition-colors hover:text-primary">
+            <input
+              type="checkbox"
+              className="h-3.5 w-3.5 rounded border-border text-accent focus:ring-accent transition-colors"
+              checked={soloAlergenos}
+              onChange={(e) => setSoloAlergenos(e.target.checked)}
+            />
+            Alérgenos
+          </label>
         </div>
       </section>
 
-      <div className="max-w-full overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
-        <div className="overflow-x-auto overscroll-x-contain">
-          <table className="w-full min-w-[640px] border-collapse text-left">
-            <thead className="bg-bg-secondary border-b border-border">
+      <div className="flex-1 min-h-0 overflow-hidden rounded-xl border border-border bg-white shadow-sm">
+        <div className="h-full overflow-x-auto overflow-y-auto overscroll-contain">
+          <table className="admin-table w-full min-w-0 border-collapse text-left">
+            <thead className="border-b border-border">
               <tr>
-                <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-muted">
-                  Nombre
-                </th>
-                <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-muted">
-                  Unidad
-                </th>
-                <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-muted">
-                  Inventario
-                </th>
-                <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-muted">
-                  Alérgeno
-                </th>
-                <th className="px-4 py-4 text-right text-xs font-bold uppercase tracking-widest text-muted">
-                  Acciones
-                </th>
+                <th>Nombre</th>
+                <th className="hidden sm:table-cell">Unidad</th>
+                <th>Inventario</th>
+                <th>Alérgeno</th>
+                <th className="text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {estaVacio ? (
                 <tr>
-                  <td colSpan={5} className="px-6 py-16 text-center">
-                    <p className="text-xs font-bold uppercase tracking-widest text-muted">
+                  <td colSpan={5} className="py-10 text-center">
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted">
                       {ingredientes.length === 0
-                        ? "No hay ingredientes. Creá el primero con «Nuevo ingrediente»."
+                        ? "No hay ingredientes. Creá el primero con «Nuevo»."
                         : "Ningún resultado con los filtros actuales."}
                     </p>
                   </td>
                 </tr>
               ) : (
                 filasOrdenadas.map((i) => (
-                  <tr key={i.id} className="hover:bg-bg-secondary/50 transition-colors">
-                    <td className="px-4 py-4">
-                      <span className="text-sm font-bold text-primary">
-                        {i.nombre}
-                      </span>
+                  <tr key={i.id} className="transition-colors hover:bg-bg-secondary/50">
+                    <td>
+                      <span className="text-xs font-bold text-primary">{i.nombre}</span>
+                      <span className="mt-0.5 block text-[10px] font-bold text-muted sm:hidden">{i.unidad ?? "—"}</span>
                     </td>
-                    <td className="px-4 py-4 text-sm font-bold text-muted">
-                      {i.unidad ?? "—"}
-                    </td>
-                    <td className="px-4 py-4">
-                      <span className="font-outfit text-sm font-black tabular-nums text-primary">
+                    <td className="hidden text-xs font-bold text-muted sm:table-cell">{i.unidad ?? "—"}</td>
+                    <td>
+                      <span className="font-outfit text-xs font-black tabular-nums text-primary">
                         {formatCantidadStock(i.stock_cantidad)}
                       </span>
                     </td>
-                    <td className="px-4 py-4">
+                    <td>
                       {i.es_alergeno ? (
-                        <span className="inline-block rounded-full border border-danger/20 bg-danger/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-danger">
+                        <span className="inline-block rounded-full border border-danger/20 bg-danger/10 px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest text-danger">
                           Alérgeno
                         </span>
                       ) : (
-                        <span className="inline-block rounded-full border border-muted/20 bg-muted/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-widest text-muted">
+                        <span className="inline-block rounded-full border border-muted/20 bg-muted/10 px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest text-muted">
                           Normal
                         </span>
                       )}
                     </td>
-                    <td className="px-4 py-4 text-right">
-                      <div className="flex flex-wrap justify-end gap-3">
+                    <td className="text-right">
+                      <div className="flex flex-wrap justify-end gap-1.5">
                         <button
                           type="button"
-                          className="text-xs font-bold uppercase tracking-widest text-accent hover:text-accent/80 transition-colors"
+                          className="text-[10px] font-bold uppercase tracking-widest text-accent transition-colors hover:text-accent/80"
                           onClick={() => abrirInventario(i)}
                         >
-                          Inventario
+                          Inv.
                         </button>
                         <button
                           type="button"
-                          className="text-xs font-bold uppercase tracking-widest text-muted hover:text-primary transition-colors"
+                          className="text-[10px] font-bold uppercase tracking-widest text-muted transition-colors hover:text-primary"
                           onClick={() => abrirEditar(i)}
                         >
                           Editar
                         </button>
                         <button
                           type="button"
-                          className="text-xs font-bold uppercase tracking-widest text-danger hover:text-danger/80 transition-colors"
+                          className="text-[10px] font-bold uppercase tracking-widest text-danger transition-colors hover:text-danger/80"
                           onClick={() => setDeleteTarget(i)}
                         >
                           Eliminar

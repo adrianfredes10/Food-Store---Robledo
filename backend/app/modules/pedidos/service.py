@@ -8,6 +8,7 @@ from decimal import Decimal
 from typing import TYPE_CHECKING, Sequence
 
 from app.core.enums import EstadoPedido, TipoServicioPedido
+from app.core.roles import ROL_ADMIN, ROL_COCINA, ROL_PEDIDOS
 from app.modules.pedidos.exceptions import (
     DireccionEntregaNoValidaError,
     DireccionEntregaRequeridaError,
@@ -27,6 +28,7 @@ from app.modules.pedidos.exceptions import (
     PedidoSinItemsError,
     ProductoNoComprableEnPedidoError,
     TransicionPedidoInvalidaError,
+    TransicionPedidoNoAutorizadaError,
 )
 from app.modules.pedidos.model import DetallePedido, HistorialEstadoPedido, Pedido
 from app.modules.pedidos.schemas import (
@@ -52,6 +54,11 @@ _TRANSICIONES_PERMITIDAS: dict[EstadoPedido, frozenset[EstadoPedido]] = {
 
 _ESTADOS_TERMINALES = frozenset({EstadoPedido.ENTREGADO, EstadoPedido.CANCELADO})
 
+_TRANSICIONES_COCINA: dict[EstadoPedido, frozenset[EstadoPedido]] = {
+    EstadoPedido.CONFIRMADO: frozenset({EstadoPedido.EN_PREP}),
+    EstadoPedido.EN_PREP: frozenset({EstadoPedido.EN_CAMINO}),
+}
+
 COSTO_ENVIO_FIJO_V1 = Decimal("50.00")
 MESA_MIN = 1
 MESA_MAX = 999
@@ -65,6 +72,33 @@ def validar_mesa_retiro_antes_aprobar_pago(uow: UnitOfWork, pedido: Pedido) -> N
     otro = ocupacion.get(pedido.numero_mesa)
     if otro is not None and otro.id != pedido.id:
         raise MesaOcupadaParaPedidoError(pedido.numero_mesa)
+
+
+def _transiciones_permitidas_para_roles(
+    roles_actor: frozenset[str] | None,
+    actual: EstadoPedido,
+) -> frozenset[EstadoPedido]:
+    if roles_actor is None:
+        return _TRANSICIONES_PERMITIDAS.get(actual, frozenset())
+    if ROL_ADMIN in roles_actor or ROL_PEDIDOS in roles_actor:
+        return _TRANSICIONES_PERMITIDAS.get(actual, frozenset())
+    if ROL_COCINA in roles_actor:
+        return _TRANSICIONES_COCINA.get(actual, frozenset())
+    return frozenset()
+
+
+def _encolar_evento_cocina(
+    uow: UnitOfWork,
+    *,
+    pedido_id: int,
+    estado_anterior: EstadoPedido,
+    estado_nuevo: EstadoPedido,
+) -> None:
+    from app.modules.cocina.events import evento_para_transicion
+
+    payload = evento_para_transicion(estado_anterior, estado_nuevo, pedido_id=pedido_id)
+    if payload is not None:
+        uow.queue_cocina_event(payload)
 
 
 def _validar_coherencia_pedido_con_historial(pedido_id: int, pedido: Pedido, ultimo: HistorialEstadoPedido | None) -> None:
@@ -320,6 +354,7 @@ class PedidoService:
         *,
         motivo: str | None = None,
         actor_usuario_id: int | None = None,
+        roles_actor: frozenset[str] | None = None,
     ) -> Pedido:
         pedido = uow.pedidos.get_by_id_for_update(pedido_id)
         if pedido is None:
@@ -333,9 +368,13 @@ class PedidoService:
         if actual in _ESTADOS_TERMINALES:
             raise PedidoEnEstadoTerminalError(pedido_id, actual)
 
-        permitidos = _TRANSICIONES_PERMITIDAS.get(actual, frozenset())
-        if nuevo_estado not in permitidos:
+        permitidos_fsm = _TRANSICIONES_PERMITIDAS.get(actual, frozenset())
+        if nuevo_estado not in permitidos_fsm:
             raise TransicionPedidoInvalidaError(pedido_id, actual, nuevo_estado)
+
+        permitidos_rol = _transiciones_permitidas_para_roles(roles_actor, actual)
+        if roles_actor is not None and nuevo_estado not in permitidos_rol:
+            raise TransicionPedidoNoAutorizadaError(pedido_id, actual, nuevo_estado)
 
         if nuevo_estado == EstadoPedido.CANCELADO:
             if motivo is None or not motivo.strip():
@@ -356,6 +395,12 @@ class PedidoService:
         uow.historial_estado_pedido.add(registro)
 
         pedido.estado = nuevo_estado
+        _encolar_evento_cocina(
+            uow,
+            pedido_id=pedido_id,
+            estado_anterior=actual,
+            estado_nuevo=nuevo_estado,
+        )
         return pedido
 
     def _armar_pedido_detalle_cliente(self, uow: UnitOfWork, pedido: Pedido) -> PedidoDetalleCliente:

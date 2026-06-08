@@ -21,6 +21,8 @@ backend/dist/
 backend/build/
 backend/*.db
 backend/_alembic_test.db
+# Caché local de imágenes automáticas (Groq → Pollinations → archivo)
+backend/data/producto_imagenes/
 
 # Frontend
 frontend/node_modules/

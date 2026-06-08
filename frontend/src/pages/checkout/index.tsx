@@ -11,7 +11,7 @@ import { useCrearPedido } from "@/features/pedidos";
 import { useAuthStore } from "@/shared/store/auth-store";
 import { useCartStore } from "@/shared/store/cart-store";
 import type { TipoServicioPedidoDTO } from "@/shared/api/endpoints/pedidos";
-import { LoadingButton } from "@/shared/ui/LoadingButton";
+import { LoadingButton, CheckoutFlowShell } from "@/shared/ui";
 
 const COSTO_ENVIO_ARS = 50;
 const MESA_MIN = 1;
@@ -83,7 +83,7 @@ export function CheckoutPage() {
 
   if (!listoParaValidar) {
     return (
-      <div className="flex items-center justify-center py-12 md:py-20">
+      <div className="flex items-center justify-center py-8 md:py-12">
         <p className="text-sm font-bold uppercase tracking-widest text-muted animate-pulse">Sincronizando...</p>
       </div>
     );
@@ -123,125 +123,124 @@ export function CheckoutPage() {
   };
 
   return (
-    <div className="mx-auto max-w-6xl w-full py-4 sm:py-8 lg:py-12 fade-in">
-      <header className="mb-8 md:mb-12 text-center md:text-left">
-        <h1 className="text-2xl md:text-4xl font-black text-primary font-outfit uppercase tracking-tight">
-          Checkout
-        </h1>
-      </header>
+    <CheckoutFlowShell
+      phase="checkout"
+      title="Confirmar pedido"
+      description="Elegí entrega o mesa; el pago es con Mercado Pago después de crear el pedido."
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative pb-8">
-        <div className="lg:col-span-7 space-y-6">
-          <section className="bg-white rounded-2xl border border-border p-6 sm:p-8 shadow-sm">
-            <h2 className="text-lg font-bold text-primary mb-6 border-b border-border pb-4">
-              ¿Cómo querés recibir tu pedido?
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      back={{ to: "/carrito", label: "Volver al carrito" }}
+    >
+      <div className="relative grid min-h-0 flex-1 grid-cols-1 gap-2 pb-24 lg:grid-cols-12 lg:gap-3 lg:overflow-hidden lg:pb-0">
+        {/* Columna formulario */}
+        <div className="min-h-0 space-y-2 lg:col-span-7 lg:overflow-y-auto lg:overflow-x-hidden lg:overscroll-contain lg:pr-1 lg:[scrollbar-gutter:stable]">
+          {/* Entrega */}
+          <section className="rounded-lg border border-border bg-white p-2.5 shadow-sm">
+            <h2 className="mb-2 text-xs font-bold uppercase tracking-wide text-primary">¿Cómo recibís?</h2>
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <label
-                className={`flex cursor-pointer flex-col gap-2 rounded-xl border p-4 transition-all ${
+                className={`flex cursor-pointer items-start gap-2 rounded-lg border p-2.5 transition-all ${
                   tipoServicio === "DELIVERY"
-                    ? "border-accent bg-primary/5 shadow-sm"
-                    : "border-border hover:border-accent/50"
+                    ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                    : "border-border hover:border-primary/40"
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <input
-                    type="radio"
-                    name="tipoServicio"
-                    className="h-5 w-5 border-border text-accent focus:ring-accent"
-                    checked={tipoServicio === "DELIVERY"}
-                    onChange={() => setTipoServicio("DELIVERY")}
-                  />
-                  <MapPin size={20} className="text-accent shrink-0" />
-                  <span className="font-bold text-primary">Envío a domicilio</span>
+                <input
+                  type="radio"
+                  name="tipoServicio"
+                  className="mt-0.5 h-4 w-4 shrink-0 border-border text-primary focus:ring-primary"
+                  checked={tipoServicio === "DELIVERY"}
+                  onChange={() => setTipoServicio("DELIVERY")}
+                />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <MapPin className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                    <span className="text-sm font-bold text-primary">Domicilio</span>
+                  </div>
+                  <p className="mt-0.5 pl-0 text-[11px] leading-snug text-muted">+ envío fijo</p>
                 </div>
-                <p className="text-xs text-muted pl-8">Incluye costo de envío fijo.</p>
               </label>
               <label
-                className={`flex cursor-pointer flex-col gap-2 rounded-xl border p-4 transition-all ${
+                className={`flex cursor-pointer items-start gap-2 rounded-lg border p-2.5 transition-all ${
                   tipoServicio === "RETIRO_EN_LOCAL"
-                    ? "border-accent bg-primary/5 shadow-sm"
-                    : "border-border hover:border-accent/50"
+                    ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                    : "border-border hover:border-primary/40"
                 }`}
               >
-                <div className="flex items-center gap-3">
-                  <input
-                    type="radio"
-                    name="tipoServicio"
-                    className="h-5 w-5 border-border text-accent focus:ring-accent"
-                    checked={tipoServicio === "RETIRO_EN_LOCAL"}
-                    onChange={() => setTipoServicio("RETIRO_EN_LOCAL")}
-                  />
-                  <Building2 size={20} className="text-accent shrink-0" />
-                  <span className="font-bold text-primary">Comer en el local</span>
+                <input
+                  type="radio"
+                  name="tipoServicio"
+                  className="mt-0.5 h-4 w-4 shrink-0 border-border text-primary focus:ring-primary"
+                  checked={tipoServicio === "RETIRO_EN_LOCAL"}
+                  onChange={() => setTipoServicio("RETIRO_EN_LOCAL")}
+                />
+                <div className="min-w-0">
+                  <div className="flex items-center gap-1.5">
+                    <Building2 className="h-4 w-4 shrink-0 text-primary" aria-hidden />
+                    <span className="text-sm font-bold text-primary">En el local</span>
+                  </div>
+                  <p className="mt-0.5 text-[11px] leading-snug text-muted">Nº de mesa · sin envío</p>
                 </div>
-                <p className="text-xs text-muted pl-8">Indicá el número de mesa. Sin costo de envío.</p>
               </label>
             </div>
           </section>
 
           {tipoServicio === "DELIVERY" && (
-            <section className="bg-white rounded-2xl border border-border p-6 sm:p-8 shadow-sm">
-              <div className="flex items-center justify-between mb-6 border-b border-border pb-4">
-                <h2 className="text-lg font-bold text-primary flex items-center gap-2">
-                  <MapPin size={20} className="text-accent" />
-                  Dirección de entrega
+            <section className="rounded-lg border border-border bg-white p-2.5 shadow-sm">
+              <div className="mb-2 flex items-center justify-between gap-2">
+                <h2 className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-primary">
+                  <MapPin className="h-3.5 w-3.5 text-primary" aria-hidden />
+                  Dirección
                 </h2>
                 <Link
-                  className="text-sm font-bold text-accent hover:text-accent-hover hover:underline underline-offset-4 transition-colors"
+                  className="shrink-0 text-[11px] font-bold text-primary underline-offset-2 hover:underline sm:text-xs"
                   to="/direcciones"
                 >
-                  Administrar
+                  Editar
                 </Link>
               </div>
 
-              {dirLoading && <p className="text-sm font-medium text-muted animate-pulse">Cargando direcciones...</p>}
+              {dirLoading && <p className="text-xs font-medium text-muted animate-pulse">Cargando…</p>}
               {!dirLoading && direcciones.length === 0 && (
-                <div className="py-6 px-4 rounded-xl bg-bg-secondary border border-dashed border-border text-center">
-                  <p className="text-sm text-muted font-medium mb-4">
-                    Para envío a domicilio necesitás al menos una dirección guardada.
-                  </p>
+                <div className="rounded-lg border border-dashed border-border bg-bg-secondary px-3 py-3 text-center">
+                  <p className="mb-2 text-xs text-muted">Necesitás una dirección guardada.</p>
                   <Link
-                    className="inline-flex items-center rounded-lg bg-primary px-5 py-2.5 text-sm font-medium text-white hover:bg-primary-hover active:scale-95 transition-all"
+                    className="inline-flex items-center rounded-md bg-primary px-3 py-2 text-xs font-bold text-white hover:bg-primary-hover"
                     to="/direcciones"
                   >
-                    Agregar dirección
+                    Agregar
                   </Link>
                 </div>
               )}
               {!dirLoading && direcciones.length > 0 && (
-                <ul className="space-y-4">
+                <ul className="max-h-[40vh] space-y-1.5 overflow-y-auto overscroll-contain pr-0.5 lg:max-h-[min(42vh,320px)]">
                   {direcciones.map((d) => (
                     <li key={d.id}>
                       <label
-                        className={`flex cursor-pointer gap-4 rounded-xl border p-4 transition-all ${
+                        className={`flex cursor-pointer gap-2 rounded-lg border p-2 transition-all ${
                           direccionId === d.id
-                            ? "bg-primary/5 border-accent shadow-sm"
-                            : "bg-white border-border hover:border-accent/50"
+                            ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                            : "border-border hover:border-primary/35"
                         }`}
                       >
-                        <div className="mt-1 flex-shrink-0">
-                          <input
-                            type="radio"
-                            name="dir"
-                            className="h-5 w-5 border-border text-accent focus:ring-accent"
-                            checked={direccionId === d.id}
-                            onChange={() => setDireccionId(d.id)}
-                          />
-                        </div>
-                        <div className="flex-1">
-                          <span className="font-bold text-primary block mb-1">
-                            {d.alias ?? "Dirección"}{" "}
+                        <input
+                          type="radio"
+                          name="dir"
+                          className="mt-0.5 h-4 w-4 shrink-0 border-border text-primary focus:ring-primary"
+                          checked={direccionId === d.id}
+                          onChange={() => setDireccionId(d.id)}
+                        />
+                        <div className="min-w-0 flex-1 text-xs leading-snug">
+                          <span className="font-bold text-primary">
+                            {d.alias ?? "Dirección"}
                             {d.es_principal && (
-                              <span className="ml-2 text-[10px] bg-accent/10 text-accent px-1.5 py-0.5 rounded-full uppercase tracking-wider">
+                              <span className="ml-1.5 rounded bg-primary/10 px-1 py-px text-[9px] font-bold uppercase tracking-wide text-primary">
                                 Principal
                               </span>
                             )}
                           </span>
-                          <span className="text-sm text-muted block leading-snug">
-                            {d.calle} {d.numero} {d.piso_dpto && `, ${d.piso_dpto}`}
-                            <br />
-                            {d.ciudad} ({d.codigo_postal})
+                          <span className="mt-0.5 block text-muted">
+                            {d.calle} {d.numero}
+                            {d.piso_dpto ? `, ${d.piso_dpto}` : ""} · {d.ciudad} ({d.codigo_postal})
                           </span>
                         </div>
                       </label>
@@ -253,103 +252,123 @@ export function CheckoutPage() {
           )}
 
           {tipoServicio === "RETIRO_EN_LOCAL" && (
-            <section className="bg-white rounded-2xl border border-border p-6 sm:p-8 shadow-sm">
-              <div className="flex items-center gap-2 mb-6 border-b border-border pb-4">
-                <Building2 size={20} className="text-accent" />
-                <h2 className="text-lg font-bold text-primary">Mesa en el salón</h2>
-              </div>
-              <label className="block">
-                <span className="text-sm font-bold text-primary mb-2 block">Número de mesa ({MESA_MIN}–{MESA_MAX})</span>
-                <input
-                  type="number"
-                  min={MESA_MIN}
-                  max={MESA_MAX}
-                  inputMode="numeric"
-                  value={numeroMesaRaw}
-                  onChange={(e) => setNumeroMesaRaw(e.target.value)}
-                  placeholder="Ej: 12"
-                  className="w-full max-w-xs rounded-xl border border-border bg-bg-secondary px-4 py-3 text-sm font-bold text-primary focus:border-accent focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent"
-                />
-              </label>
+            <section className="rounded-lg border border-border bg-white p-2.5 shadow-sm">
+              <h2 className="mb-2 flex items-center gap-1.5 text-xs font-bold uppercase tracking-wide text-primary">
+                <Building2 className="h-3.5 w-3.5 text-primary" aria-hidden />
+                Mesa ({MESA_MIN}–{MESA_MAX})
+              </h2>
+              <input
+                type="number"
+                min={MESA_MIN}
+                max={MESA_MAX}
+                inputMode="numeric"
+                value={numeroMesaRaw}
+                onChange={(e) => setNumeroMesaRaw(e.target.value)}
+                placeholder="Ej. 12"
+                className="w-full max-w-[10rem] rounded-lg border border-border bg-bg-secondary px-3 py-2 text-sm font-bold text-primary focus:border-primary focus:bg-white focus:outline-none focus:ring-1 focus:ring-primary"
+              />
               {!retiroMesaOk && numeroMesaRaw.trim() !== "" && (
-                <p className="mt-2 text-sm font-medium text-warning">Ingresá un número de mesa válido.</p>
+                <p className="mt-1.5 text-xs font-medium text-warning">Número no válido.</p>
               )}
             </section>
           )}
 
-          <section className="bg-white rounded-2xl border border-border p-6 sm:p-8 shadow-sm">
-            <div className="flex items-center mb-6 border-b border-border pb-4">
-              <h2 className="text-lg font-bold text-primary flex items-center gap-2">
-                <CreditCard size={20} className="text-accent" />
-                Forma de pago
-              </h2>
-            </div>
-
-            <div className="flex items-center gap-4 rounded-xl border border-accent bg-primary/5 p-4 sm:p-6 shadow-sm">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[#009ee3] text-white">
-                <CheckCircle2 size={24} />
+          {/* Pago: franja compacta */}
+          <section className="rounded-lg border border-border bg-white p-2.5 shadow-sm">
+            <h2 className="sr-only">Forma de pago</h2>
+            <div className="flex items-center gap-2.5 rounded-lg border border-border bg-bg-secondary px-2.5 py-1.5">
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-primary text-white">
+                <CheckCircle2 className="h-3.5 w-3.5" aria-hidden />
               </div>
-              <div>
-                <span className="font-bold text-primary text-base block mb-1">Mercado Pago</span>
-                <span className="text-sm text-muted block">Pagás de forma segura después de confirmar.</span>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-1.5">
+                  <CreditCard className="h-3 w-3 shrink-0 text-primary" aria-hidden />
+                  <span className="text-xs font-bold text-primary sm:text-sm">Mercado Pago</span>
+                </div>
+                <p className="text-[10px] text-muted sm:text-[11px]">Al confirmar te redirigimos a pagar.</p>
               </div>
             </div>
           </section>
         </div>
 
-        <div className="lg:col-span-5 lg:sticky lg:top-24">
-          <div className="bg-bg-secondary rounded-2xl border border-border p-6 sm:p-8 shadow-sm">
-            <h3 className="text-lg font-bold text-primary mb-6 border-b border-border pb-4">Resumen del Pedido</h3>
+        {/* Resumen */}
+        <div className="flex min-h-0 flex-col lg:col-span-5 lg:overflow-y-auto lg:overscroll-contain lg:[scrollbar-gutter:stable]">
+          <div className="rounded-lg border border-border bg-bg-secondary p-2.5 shadow-sm lg:sticky lg:top-0">
+            <h3 className="mb-2 border-b border-border pb-2 text-xs font-bold uppercase tracking-wide text-primary">
+              Tu pedido
+            </h3>
 
-            <ul className="mb-6 space-y-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+            <ul className="custom-scrollbar mb-3 max-h-[36vh] space-y-2 overflow-y-auto text-xs lg:max-h-[min(38vh,280px)]">
               {items.map((item) => (
-                <li key={`${item.productoId}-${item.personalizacion.join(",")}`} className="flex justify-between items-start text-sm">
-                  <div className="flex-1 pr-4">
-                    <span className="font-bold text-primary block">{item.nombre}</span>
-                    <span className="text-muted block text-xs mt-0.5">Cant: {item.cantidad}</span>
+                <li
+                  key={`${item.productoId}-${item.personalizacion.join(",")}`}
+                  className="flex items-start justify-between gap-2 border-b border-border/60 pb-2 last:border-0 last:pb-0"
+                >
+                  <div className="min-w-0 flex-1">
+                    <span className="line-clamp-2 font-bold leading-tight text-primary">{item.nombre}</span>
+                    <span className="text-[11px] text-muted">×{item.cantidad}</span>
                   </div>
-                  <span className="font-bold text-primary shrink-0">{formatMoney(item.precioUnitario * item.cantidad)}</span>
+                  <span className="shrink-0 font-bold tabular-nums text-primary">
+                    {formatMoney(item.precioUnitario * item.cantidad)}
+                  </span>
                 </li>
               ))}
             </ul>
 
-            <div className="space-y-4 mb-6 border-t border-border pt-6">
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted font-medium">Subtotal ítems</span>
-                <span className="font-bold text-primary">{formatMoney(subtotalItems)}</span>
+            <div className="space-y-1.5 border-t border-border pt-2 text-xs">
+              <div className="flex justify-between gap-2">
+                <span className="text-muted">Subtotal</span>
+                <span className="font-bold tabular-nums text-primary">{formatMoney(subtotalItems)}</span>
               </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-muted font-medium">Costo de envío</span>
-                <span className="font-bold text-primary">{formatMoney(costoEnvio)}</span>
+              <div className="flex justify-between gap-2">
+                <span className="text-muted">Envío</span>
+                <span className="font-bold tabular-nums text-primary">{formatMoney(costoEnvio)}</span>
               </div>
             </div>
 
-            <div className="pt-6 border-t border-border flex justify-between items-end mb-8">
-              <span className="text-base font-bold text-primary">Total</span>
-              <span className="text-3xl font-black text-accent tracking-tight">{formatMoney(totalConEnvio)}</span>
+            <div className="mt-2 flex items-baseline justify-between border-t border-border pt-2">
+              <span className="text-xs font-bold text-primary">Total</span>
+              <span className="font-outfit text-xl font-black tabular-nums tracking-tight text-primary sm:text-2xl">
+                {formatMoney(totalConEnvio)}
+              </span>
             </div>
 
-            <form onSubmit={handleConfirmar}>
+            <form id="checkout-confirm-form" className="mt-3" onSubmit={handleConfirmar}>
               <LoadingButton
                 type="submit"
                 isLoading={mutation.isPending}
                 disabled={!formularioOk || mutation.isPending}
-                className="w-full py-4 bg-primary text-white font-bold text-lg rounded-xl hover:bg-primary-hover shadow-md"
+                className="hidden w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-white shadow-sm hover:bg-primary-hover sm:py-3 lg:inline-flex"
               >
                 Confirmar pedido
               </LoadingButton>
             </form>
 
             {!formularioOk && (
-              <p className="mt-4 text-center text-sm font-bold text-warning animate-pulse">
-                {tipoServicio === "DELIVERY"
-                  ? "Seleccioná una dirección de entrega"
-                  : "Indicá el número de mesa (1 a 999)"}
+              <p className="mt-2 hidden text-center text-[11px] font-bold text-warning lg:block">
+                {tipoServicio === "DELIVERY" ? "Elegí una dirección" : "Indicá la mesa"}
               </p>
             )}
           </div>
         </div>
       </div>
-    </div>
+
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-white/95 p-2.5 backdrop-blur-sm lg:hidden">
+        <LoadingButton
+          form="checkout-confirm-form"
+          type="submit"
+          isLoading={mutation.isPending}
+          disabled={!formularioOk || mutation.isPending}
+          className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-white shadow-sm hover:bg-primary-hover"
+        >
+          Confirmar pedido · {formatMoney(totalConEnvio)}
+        </LoadingButton>
+        {!formularioOk && (
+          <p className="mt-2 text-center text-[10px] font-bold text-warning">
+            {tipoServicio === "DELIVERY" ? "Elegí una dirección" : "Indicá la mesa"}
+          </p>
+        )}
+      </div>
+    </CheckoutFlowShell>
   );
 }

@@ -17,6 +17,7 @@ const apiProxy = {
   "/api": {
     target: apiProxyTarget,
     changeOrigin: true,
+    ws: true,
     rewrite: (p: string) => p.replace(/^\/api/, "/api/v1"),
   },
 } as const;

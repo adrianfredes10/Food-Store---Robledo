@@ -17,7 +17,7 @@ Documento **canónico** de contexto para humanos, agentes (Cursor, Antigravity, 
 | Estado local | **Zustand** (auth, carrito, pagos/UI) |
 | Pagos | **Mercado Pago**: Checkout Pro (preferencias), brick de tarjeta (SDK React), **webhooks** e **idempotencia** en backend |
 
-**Roles de negocio** (tabla `roles` / `usuario_rol`): **ADMIN**, **STOCK**, **PEDIDOS**, **CLIENT**. El registro público asigna **CLIENT**.
+**Roles de negocio** (tabla `roles` / `usuario_rol`): **ADMIN**, **STOCK**, **PEDIDOS**, **COCINA**, **CLIENT**. El registro público asigna **CLIENT**.
 
 ---
 
@@ -32,8 +32,9 @@ Documento **canónico** de contexto para humanos, agentes (Cursor, Antigravity, 
 | `DOCKER.md` | Stack **docker compose** (Postgres, API, Vite) con volúmenes y recarga |
 | `docker-compose.yml` | Servicios `postgres` (host **5433**), `api` (**8008**), `web` (**5173**) |
 | `AGENTS.md` | Regla: leer este `project.md` al iniciar tareas del repo |
-| `.cursor/commands/` | Comandos tipo opsx (propose, apply, …) |
-| `.cursor/skills/openspec-*` | Skills OpenSpec (CLI `openspec` si aplica) |
+| `.cursor/commands/` | Comandos OPSX: `opsx-explore`, `opsx-propose`, `opsx-apply`, `opsx-archive` |
+| `.cursor/skills/openspec-*` | Skills OpenSpec + admin/tailwind (CLI `openspec` si aplica) |
+| `docs/feature-display-cocina/` | Feature pack dominio KDS (insumo SDD, no código) |
 
 Cambios OpenSpec (si usás el CLI): suelen vivir en `openspec/changes/<nombre>/`.
 
@@ -83,12 +84,14 @@ npm run dev
 - **`vite.config.ts`**: proxy `/api` → `http://127.0.0.1:8008` con rewrite **`/api` → `/api/v1`** (el cliente axios usa base `/api` por defecto).
 - Tras editar **`frontend/.env`**, reiniciar Vite (las variables `VITE_*` se inyectan en build/dev al arrancar).
 
-### 3.4 Usuario administrador (seed)
+### 3.4 Usuarios seed (operación)
 
-Tras seed inicial (si no existía):
+Tras seed inicial (si no existían):
 
-- **Email:** `admin@foodstore.com`
-- **Contraseña:** `Admin1234!`
+| Rol | Email | Contraseña |
+|-----|-------|------------|
+| ADMIN | `admin@foodstore.com` | `Admin1234!` |
+| COCINA (KDS) | `cocina@foodstore.com` | `Cocina1234!` |
 
 ### 3.5 Docker (desarrollo)
 
@@ -119,7 +122,7 @@ El frontend en Docker usa `VITE_API_BASE_URL=http://127.0.0.1:8008` para que el 
 | `MERCADOPAGO_ACCESS_TOKEN` | Token OAuth de la aplicación MP (mismo ambiente que la Public Key del front). Alias: **`MP_ACCESS_TOKEN`** |
 | `MERCADOPAGO_MOCK` | `true`: no llama APIs reales de MP (desarrollo). `false`: requiere token válido |
 | `PUBLIC_APP_URL` | URL pública de esta API (notificaciones MP, `back_urls`). Debe coincidir con cómo el navegador/backend resuelve el host en prod |
-| `GROQ_API_KEY`, `GROQ_MODEL`, `PRODUCTO_IMAGEN_AUTO` | Imagen opcional de producto vía Groq (`app/integrations/producto_imagen_groq.py`) |
+| `GROQ_API_KEY`, `GROQ_MODEL`, `PRODUCTO_IMAGEN_AUTO`, `PUBLIC_APP_URL` | Imagen opcional: Groq (prompt) + descarga única Pollinations → `data/producto_imagenes/` servido en `/static/productos` (`producto_imagen_groq.py`) |
 | `PYTEST_DISABLE_RATE_LIMIT` | En tests: `1` / `true` / `yes` desactiva el límite agresivo de `POST /auth/login` (ver `auth/router.py`) |
 
 ### 4.2 Frontend — `frontend/.env` (gitignored; plantilla `frontend/.env.example`)
@@ -153,7 +156,8 @@ El frontend en Docker usa `VITE_API_BASE_URL=http://127.0.0.1:8008` para que el 
 ### 5.4 Autenticación y autorización
 
 - **`app/deps/auth.py`**: `get_current_user` (Bearer JWT), `get_current_user_optional` (logout con solo refresh).
-- **`app/deps/roles.py`**: `require_admin`, `require_stock_o_admin`, `require_pedidos_o_admin`.
+- **`app/core/roles.py`**: constantes `ROL_*` (incl. **`ROL_COCINA`**).
+- **`app/deps/roles.py`**: `require_admin`, `require_stock_o_admin`, `require_pedidos_o_admin`, `require_cocina_o_pedidos_o_admin`.
 - JWT access: claims típicos **`sub`** (id usuario), **`type`: `access`**. Los **roles** no van en el token; se listan en **`GET /api/v1/auth/me`**.
 - **`app/modules/auth/service.py`**: refresh rota refresh token; comparación **`expires_at`** tolera datetimes **naive** leídos de SQLite (`_dt_utc`).
 
@@ -189,7 +193,7 @@ Cada módulo suele tener: `router.py`, `service.py`, `schemas.py`, `repository.p
 | GET | `/productos/{id}/ingredientes` | Público |
 | PATCH | `/productos/{id}/stock` | **STOCK o ADMIN** |
 
-Opcional: **imagen automática** post-creación si `PRODUCTO_IMAGEN_AUTO` y Groq configurado (`router` + `BackgroundTasks`).
+Opcional: **imagen automática** post-creación si `PRODUCTO_IMAGEN_AUTO` y Groq configurado (`BackgroundTasks`): se materializa en disco y `imagen_url` apunta a `PUBLIC_APP_URL/static/productos/{id}.*` (fallback URL Pollinations si falla la descarga).
 
 ### 6.3 Categorías — `/categorias`
 
@@ -291,6 +295,18 @@ Persistencia y migraciones: tabla **`mesas`** (Alembic `0004_mesas_catalogo`; pe
 
 Catálogo de mesas bajo **`/admin/mesas`**: ver **§6.6bis**.
 
+### 6.9 Cocina (KDS) — `/cocina`
+
+| Método | Path | Auth |
+|--------|------|------|
+| GET | `/cocina/pedidos` | **COCINA**, **PEDIDOS** o **ADMIN**; lista CONFIRMADO, EN_PREPARACION, EN_CAMINO |
+| POST | `/cocina/pedidos/{id}/transicion` | Mismos roles; body `estado` según FSM y matriz de rol |
+| WS | `/cocina/ws?token=<access_jwt>` | JWT access; roles COCINA / PEDIDOS / ADMIN |
+
+**Transiciones típicas cocina:** `CONFIRMADO → EN_PREPARACION` (toma pedido), `EN_PREPARACION → EN_CAMINO` (listo para despacho). Cancelación y `→ ENTREGADO` **no** son de COCINA.
+
+Eventos push: `ws_manager` en proceso + `emit.py` al confirmar/transicionar. Límite v1: una sola instancia de API (sin Redis).
+
 ---
 
 ## 7. Frontend — rutas y capas
@@ -309,6 +325,16 @@ Layout público con nav + footer:
 | `/mis-pedidos` | Mis pedidos |
 | `/pedido/:id` | Detalle pedido |
 | `/login` | Login / registro |
+
+**Cocina** (rol **COCINA**, **PEDIDOS** o **ADMIN**), bajo `/cocina`:
+
+| Ruta | Uso |
+|------|-----|
+| `/cocina` | KDS: columnas pendiente / en preparación / finalizado; WebSocket tiempo real |
+
+Login con rol **COCINA** redirige a `/cocina` (`useLogin`).
+
+**Checkout funnel:** `CheckoutFlowShell` + `CheckoutFlowStepper` en carrito, checkout, direcciones, mis-pedidos y detalle de pedido.
 
 **Admin** (rol ADMIN), anidado bajo `/admin`:
 
@@ -361,6 +387,8 @@ Archivos de test (nombre orientativo):
 | `test_pedidos_cliente_api.py` | Pedidos cliente, búsqueda catálogo, **mesas disponibles** (`/mesas/disponibles`) |
 | `test_pagos.py` | Idempotencia checkout + webhooks |
 | `test_admin_api.py` | Endpoints admin (dashboard, usuarios, pedidos, transiciones) |
+| `test_cocina.py` | KDS: listado, RBAC, transiciones cocina, cola/enrich eventos WS |
+| `test_producto_imagen_groq.py` | Integración Groq + materialización imagen producto |
 
 Integración: preferir **HTTP** contra la app; no mockear UoW/servicios salvo decisión explícita.
 
@@ -375,6 +403,7 @@ Integración: preferir **HTTP** contra la app; no mockear UoW/servicios salvo de
 5. **Webhooks:** diseñados para ser **idempotentes** (mismo pago notificado dos veces).
 6. **Categorías:** restricciones de nombre único por padre; no borrar con productos activos (conflict).
 7. **Emails de test:** usar dominios válidos para Pydantic (`example.com`).
+8. **Cocina:** rol COCINA no hace CRUD; solo cola KDS y transiciones permitidas; despacho final sigue en PEDIDOS/ADMIN.
 
 ---
 
@@ -388,4 +417,4 @@ Integración: preferir **HTTP** contra la app; no mockear UoW/servicios salvo de
 
 ---
 
-*Última revisión: mesas / retiro en local, admin usuarios, stack Docker en raíz, tests `test_admin_api.py`.*
+*Última revisión: KDS cocina (rol COCINA, WS), checkout stepper, OPSX Cursor completo, admin layout compacto; ver `openspec/CHANGES_MAP.md`.*

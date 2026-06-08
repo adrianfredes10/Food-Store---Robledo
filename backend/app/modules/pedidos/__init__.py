@@ -7,6 +7,7 @@ from app.modules.pedidos.exceptions import (
     PedidoSinItemsError,
     ProductoNoComprableEnPedidoError,
     TransicionPedidoInvalidaError,
+    TransicionPedidoNoAutorizadaError,
 )
 from app.modules.pedidos.historial_estado_pedido_repository import HistorialEstadoPedidoRepository
 from app.modules.pedidos.model import DetallePedido, HistorialEstadoPedido, Pedido
@@ -26,4 +27,5 @@ __all__ = [
     "PedidoSinItemsError",
     "ProductoNoComprableEnPedidoError",
     "TransicionPedidoInvalidaError",
+    "TransicionPedidoNoAutorizadaError",
 ]

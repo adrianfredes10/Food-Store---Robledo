@@ -16,6 +16,15 @@ def get_uow() -> Generator[UnitOfWork, None, None]:
         else:
             try:
                 uow.commit()
+                from app.modules.cocina.emit import (
+                    emit_cocina_events_after_commit,
+                    enrich_cocina_events_for_broadcast,
+                )
+
+                pending = uow.drain_cocina_events()
+                emit_cocina_events_after_commit(
+                    enrich_cocina_events_for_broadcast(uow, pending),
+                )
             except Exception:
                 uow.rollback()
                 raise

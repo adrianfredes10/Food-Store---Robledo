@@ -1,12 +1,12 @@
 import { useMemo } from "react";
-import { useNavigate, Link, Navigate } from "react-router-dom";
-import { MoveLeft, PackageOpen, CreditCard } from "lucide-react";
+import { useNavigate, Navigate } from "react-router-dom";
+import { PackageOpen } from "lucide-react";
 
 import { CartItem } from "@/features/carrito/ui/CartItem";
 import { useAuthHydrated } from "@/features/auth";
 import { useCartStore } from "@/shared/store/cart-store";
 import { useAuthStore } from "@/shared/store/auth-store";
-import { EmptyState } from "@/shared/ui/EmptyState";
+import { EmptyState, CheckoutFlowShell } from "@/shared/ui";
 
 function formatMoney(value: number) {
   return value.toLocaleString("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
@@ -16,13 +16,11 @@ export function CarritoPage() {
   const navigate = useNavigate();
   const authHydrated = useAuthHydrated();
   const token = useAuthStore((s) => s.access_token);
-  // el carrito se guarda en localStorage automaticamente
   const items = useCartStore((s) => s.items);
-  const clearCart = useCartStore((s) => s.clearCart);
 
   if (!authHydrated) {
     return (
-      <div className="flex items-center justify-center py-12 md:py-20">
+      <div className="flex items-center justify-center py-8 md:py-12">
         <p className="text-sm font-bold uppercase tracking-widest text-muted animate-pulse">Sincronizando...</p>
       </div>
     );
@@ -40,91 +38,96 @@ export function CarritoPage() {
   const estaVacio = !hayItems;
 
   return (
-    <div className="mx-auto w-full max-w-6xl py-4 sm:py-8 lg:py-12 fade-in">
-      <div className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-4">
-            <Link to="/" className="flex h-10 w-10 items-center justify-center rounded-full bg-white border border-border text-muted hover:text-primary transition-colors hover:shadow-sm active:scale-95">
-                <MoveLeft size={20} />
-            </Link>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-primary font-outfit uppercase tracking-tight">
-              TU CARRITO
-            </h1>
-        </div>
-        {hayItems && (
-            <button
-              onClick={() => clearCart()}
-              className="text-xs sm:text-sm font-bold text-muted hover:text-danger hover:underline transition-colors px-2 py-1 underline-offset-4"
-            >
-              Vaciar carrito
-            </button>
-        )}
-      </div>
+    <CheckoutFlowShell
+      phase="carrito"
+      title="Carrito"
+      description="Revisá productos y cantidades; envío o mesa los indicás en el siguiente paso."
 
+      back={{ to: "/", label: "Seguir comprando" }}
+      headerExtra={null}
+    >
       {estaVacio ? (
-        <EmptyState 
-            titulo="Tu carrito está vacío" 
-            descripcion="Aún no ha seleccionado la excelencia de nuestro catálogo. Descubrí nuestras opciones gourmet y deleitá tu paladar."
-            accion={{ label: "Explorar catálogo", href: "/" }}
-            icon={PackageOpen}
+        <EmptyState
+          titulo="Tu carrito está vacío"
+          descripcion="Descubrí el catálogo y agregá productos para continuar."
+          accion={{ label: "Explorar catálogo", href: "/" }}
+          icon={PackageOpen}
         />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start relative pb-24 lg:pb-0">
-          
-          {/* Columna Izquierda: Items (60% en desktop = col-span-7 o 8) */}
-          <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-6">
-            <div className="bg-white rounded-2xl md:rounded-[2rem] border border-border shadow-sm p-4 sm:p-6 md:p-8">
+        <>
+          <div className="relative grid min-h-0 flex-1 grid-cols-1 gap-2 pb-24 lg:grid-cols-12 lg:gap-3 lg:overflow-hidden lg:pb-0">
+            <div className="min-h-0 space-y-2 lg:col-span-7 lg:overflow-y-auto lg:overflow-x-hidden lg:overscroll-contain lg:pr-1 lg:[scrollbar-gutter:stable]">
+              <section className="rounded-lg border border-border bg-white p-2.5 shadow-sm">
+                <h2 className="sr-only">Productos</h2>
                 <div className="flex flex-col">
-                    {items.map((item) => (
-                      <CartItem key={`${item.productoId}-${item.personalizacion.join(",")}`} item={item} />
-                    ))}
+                  {items.map((item) => (
+                    <CartItem key={`${item.productoId}-${item.personalizacion.join(",")}`} item={item} />
+                  ))}
                 </div>
-            </div>
-          </div>
-
-          {/* Columna Derecha: Resumen (40% en desktop = col-span-5 o 4) */}
-          <div className="lg:col-span-5 xl:col-span-4 bg-bg-secondary rounded-2xl md:rounded-[2rem] border border-border p-6 sm:p-8 lg:sticky lg:top-24 shadow-sm">
-            <h3 className="text-lg font-bold text-primary mb-6 border-b border-border pb-4">Resumen del Pedido</h3>
-            
-            <div className="space-y-4 mb-6">
-                <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted font-medium">Subtotal</span>
-                    <span className="font-bold text-primary">{formatMoney(subtotal)}</span>
-                </div>
-                <div className="flex justify-between items-center text-sm">
-                    <span className="text-muted font-medium">Costo de envío</span>
-                    <span className="font-bold text-primary">{formatMoney(envio)}</span>
-                </div>
+              </section>
             </div>
 
-            <div className="border-t border-border pt-6 mb-8 flex justify-between items-end">
-                <span className="text-base font-bold text-primary">Total</span>
-                <span className="text-3xl font-black text-accent tracking-tight">{formatMoney(total)}</span>
-            </div>
+            <div className="flex min-h-0 flex-col lg:col-span-5 lg:overflow-y-auto lg:overscroll-contain lg:[scrollbar-gutter:stable]">
+              <div className="rounded-lg border border-border bg-bg-secondary p-2.5 shadow-sm lg:sticky lg:top-0">
+                <h3 className="mb-2 border-b border-border pb-2 text-xs font-bold uppercase tracking-wide text-primary">Tu pedido</h3>
 
-            {/* Check out button for desktop/tablet */}
-            <div className="hidden lg:block">
-                <button
+                <ul className="custom-scrollbar mb-3 max-h-[36vh] space-y-2 overflow-y-auto text-xs lg:max-h-[min(38vh,280px)]">
+                  {items.map((item) => (
+                    <li
+                      key={`${item.productoId}-${item.personalizacion.join(",")}`}
+                      className="flex items-start justify-between gap-2 border-b border-border/60 pb-2 last:border-0 last:pb-0"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <span className="line-clamp-2 font-bold leading-tight text-primary">{item.nombre}</span>
+                        <span className="text-[11px] text-muted">×{item.cantidad}</span>
+                      </div>
+                      <span className="shrink-0 font-bold tabular-nums text-primary">
+                        {formatMoney(item.precioUnitario * item.cantidad)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+
+                <div className="space-y-1.5 border-t border-border pt-2 text-xs">
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted">Subtotal</span>
+                    <span className="font-bold tabular-nums text-primary">{formatMoney(subtotal)}</span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-muted">Envío</span>
+                    <span className="font-bold tabular-nums text-primary">{formatMoney(envio)}</span>
+                  </div>
+                </div>
+
+                <div className="mt-2 flex items-baseline justify-between border-t border-border pt-2">
+                  <span className="text-xs font-bold text-primary">Total</span>
+                  <span className="font-outfit text-xl font-black tabular-nums tracking-tight text-primary sm:text-2xl">{formatMoney(total)}</span>
+                </div>
+
+                <div className="mt-3 hidden lg:block">
+                  <button
+                    type="button"
                     onClick={() => navigate("/checkout")}
-                    className="w-full py-4 bg-accent text-white font-bold text-lg rounded-xl flex items-center justify-center gap-3 hover:bg-accent-hover transition-all active:scale-95 shadow-md shadow-accent/20"
-                >
-                    <CreditCard size={20} />
-                    Ir al checkout
-                </button>
+                    className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2 text-sm font-bold text-white shadow-sm transition-all hover:bg-primary-hover sm:py-2.5"
+                  >
+                    Siguiente paso: confirmar
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
-          {/* Floating Checkout Button for Mobile */}
-          <div className="fixed bottom-0 left-0 right-0 p-4 bg-white border-t border-border shadow-[0_-10px_40px_rgba(0,0,0,0.1)] lg:hidden z-40">
-             <button
-                onClick={() => navigate("/checkout")}
-                className="w-full py-3.5 bg-accent text-white font-bold text-base rounded-xl flex items-center justify-center gap-2 hover:bg-accent-hover active:scale-95 shadow-md shadow-accent/20"
+          <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-border bg-white/95 p-2.5 backdrop-blur-sm lg:hidden">
+            <button
+              type="button"
+              onClick={() => navigate("/checkout")}
+              className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-white shadow-md shadow-primary/20 active:scale-[0.99]"
             >
-                <CreditCard size={20} />
-                Confirmar compra ({formatMoney(total)})
+              Siguiente: confirmar · {formatMoney(total)}
             </button>
           </div>
-        </div>
+        </>
       )}
-    </div>
+    </CheckoutFlowShell>
   );
 }

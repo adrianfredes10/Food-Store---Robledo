@@ -16,7 +16,10 @@ interface EstadoBadgeProps {
 
 export function EstadoBadge({ estado, size = "md" }: EstadoBadgeProps) {
   const classes = ESTADOS_CONFIG[estado] || "bg-slate-100 text-slate-700 border border-slate-300";
-  const sizeClasses = size === "sm" ? "px-2 py-0.5 text-xs" : "px-3 py-1 text-sm";
+  const sizeClasses =
+    size === "sm"
+      ? "px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider"
+      : "px-3 py-1 text-sm";
 
   return (
     <span

@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 import {
   aplanarCategoriasParaSelect,
@@ -7,6 +8,7 @@ import {
   useAdminProductoMutations,
   useCategorias,
   useIngredientesTodos,
+  type CategoriaNodo,
 } from "@/features/admin";
 import { useProductos } from "@/features/productos/hooks/useProductos";
 import { apiErrorDetail } from "@/shared/api/apiErrorDetail";
@@ -19,6 +21,247 @@ function formatMoney(value: number) {
   return value.toLocaleString("es-AR", { style: "currency", currency: "ARS", maximumFractionDigits: 0 });
 }
 
+function collectDescendantIds(nodo: CategoriaNodo): number[] {
+  return [nodo.id, ...nodo.hijos.flatMap(collectDescendantIds)];
+}
+
+function getCategoryScopeIds(arbol: CategoriaNodo[], catId: number): Set<number> {
+  function findNode(nodes: CategoriaNodo[]): CategoriaNodo | null {
+    for (const n of nodes) {
+      if (n.id === catId) return n;
+      const found = findNode(n.hijos);
+      if (found) return found;
+    }
+    return null;
+  }
+  const node = findNode(arbol);
+  return node ? new Set(collectDescendantIds(node)) : new Set([catId]);
+}
+
+function categoriaTieneHijos(arbol: CategoriaNodo[], catId: number): boolean {
+  function findNode(nodes: CategoriaNodo[]): CategoriaNodo | null {
+    for (const n of nodes) {
+      if (n.id === catId) return n;
+      const found = findNode(n.hijos);
+      if (found) return found;
+    }
+    return null;
+  }
+  return (findNode(arbol)?.hijos.length ?? 0) > 0;
+}
+
+function findAncestorIds(arbol: CategoriaNodo[], targetId: number): number[] {
+  function walk(nodes: CategoriaNodo[], path: number[]): number[] | null {
+    for (const n of nodes) {
+      const next = [...path, n.id];
+      if (n.id === targetId) return path;
+      const found = walk(n.hijos, next);
+      if (found) return found;
+    }
+    return null;
+  }
+  return walk(arbol, []) ?? [];
+}
+
+function CategoriaTreeRows({
+  nodos,
+  nivel,
+  expanded,
+  onToggleExpand,
+  categoriaFiltroId,
+  onSelect,
+  contarEnScope,
+}: {
+  nodos: CategoriaNodo[];
+  nivel: number;
+  expanded: Set<number>;
+  onToggleExpand: (id: number) => void;
+  categoriaFiltroId: number | null;
+  onSelect: (id: number) => void;
+  contarEnScope: (id: number) => number;
+}) {
+  return (
+    <>
+      {nodos.map((n) => {
+        const hasHijos = n.hijos.length > 0;
+        const isExpanded = expanded.has(n.id);
+        const activa = categoriaFiltroId === n.id;
+        const count = contarEnScope(n.id);
+
+        return (
+          <div key={n.id}>
+            <div
+              className="flex min-w-0 items-center gap-0.5"
+              style={{ paddingLeft: `${nivel * 0.75 + 0.25}rem` }}
+            >
+              {hasHijos ? (
+                <button
+                  type="button"
+                  aria-label={isExpanded ? "Contraer subcategorías" : "Expandir subcategorías"}
+                  className="shrink-0 rounded p-0.5 text-muted transition-colors hover:bg-bg-secondary hover:text-primary"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onToggleExpand(n.id);
+                  }}
+                >
+                  <ChevronRight
+                    className={`h-3.5 w-3.5 transition-transform ${isExpanded ? "rotate-90" : ""}`}
+                    aria-hidden
+                  />
+                </button>
+              ) : (
+                <span className="w-4 shrink-0" aria-hidden />
+              )}
+              <button
+                type="button"
+                onClick={() => onSelect(n.id)}
+                className={`flex min-w-0 flex-1 items-center justify-between gap-2 rounded-lg px-2 py-1.5 text-left text-[10px] font-bold transition-colors ${
+                  activa ? "bg-primary text-white" : "text-primary hover:bg-bg-secondary"
+                }`}
+              >
+                <span className="truncate">{n.nombre}</span>
+                <span
+                  className={`shrink-0 rounded-full px-1.5 py-0.5 text-[8px] font-black tabular-nums ${
+                    activa ? "bg-white/20 text-white" : "bg-primary/10 text-primary"
+                  }`}
+                >
+                  {count}
+                </span>
+              </button>
+            </div>
+            {hasHijos && isExpanded ? (
+              <CategoriaTreeRows
+                nodos={n.hijos}
+                nivel={nivel + 1}
+                expanded={expanded}
+                onToggleExpand={onToggleExpand}
+                categoriaFiltroId={categoriaFiltroId}
+                onSelect={onSelect}
+                contarEnScope={contarEnScope}
+              />
+            ) : null}
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+function CategoriasNavDesplegable({
+  arbol,
+  categoriaFiltroId,
+  onSelect,
+  contarEnScope,
+  totalItems,
+  categoriaById,
+}: {
+  arbol: CategoriaNodo[];
+  categoriaFiltroId: number | null;
+  onSelect: (id: number | null) => void;
+  contarEnScope: (id: number) => number;
+  totalItems: number;
+  categoriaById: Map<number, string>;
+}) {
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [open, setOpen] = useState(false);
+  const [expanded, setExpanded] = useState<Set<number>>(() => new Set());
+
+  const label =
+    categoriaFiltroId === null
+      ? `Todas las categorías (${totalItems})`
+      : `${categoriaById.get(categoriaFiltroId) ?? "Categoría"} (${contarEnScope(categoriaFiltroId)})`;
+
+  useEffect(() => {
+    if (!open) return;
+    function onPointerDown(e: PointerEvent) {
+      if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("pointerdown", onPointerDown, true);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("pointerdown", onPointerDown, true);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || categoriaFiltroId === null) return;
+    const ancestors = findAncestorIds(arbol, categoriaFiltroId);
+    if (ancestors.length === 0) return;
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      for (const id of ancestors) next.add(id);
+      return next;
+    });
+  }, [open, categoriaFiltroId, arbol]);
+
+  function toggleExpand(id: number) {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function select(id: number | null) {
+    onSelect(id);
+    setOpen(false);
+  }
+
+  if (arbol.length === 0) return null;
+
+  return (
+    <div ref={rootRef} className="relative min-w-0 flex-1 sm:max-w-[16rem]">
+      <button
+        type="button"
+        aria-haspopup="tree"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+        className="flex w-full min-w-0 items-center justify-between gap-2 rounded-lg border border-border bg-bg-secondary px-2.5 py-1.5 text-left text-[10px] font-bold text-primary transition-all hover:border-primary/30 focus:border-accent focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent"
+      >
+        <span className="truncate">{label}</span>
+        <ChevronDown className={`h-3.5 w-3.5 shrink-0 text-muted transition-transform ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {open ? (
+        <div className="absolute left-0 right-0 z-30 mt-1 overflow-hidden rounded-xl border border-border bg-white shadow-lg">
+          <div className="max-h-52 overflow-y-auto overscroll-contain p-1">
+            <button
+              type="button"
+              onClick={() => select(null)}
+              className={`mb-0.5 flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left text-[10px] font-bold transition-colors ${
+                categoriaFiltroId === null ? "bg-primary text-white" : "text-primary hover:bg-bg-secondary"
+              }`}
+            >
+              <span>Todas las categorías</span>
+              <span
+                className={`rounded-full px-1.5 py-0.5 text-[8px] font-black tabular-nums ${
+                  categoriaFiltroId === null ? "bg-white/20 text-white" : "bg-primary/10 text-primary"
+                }`}
+              >
+                {totalItems}
+              </span>
+            </button>
+            <CategoriaTreeRows
+              nodos={arbol}
+              nivel={0}
+              expanded={expanded}
+              onToggleExpand={toggleExpand}
+              categoriaFiltroId={categoriaFiltroId}
+              onSelect={select}
+              contarEnScope={contarEnScope}
+            />
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function IngredientesPicker({
   items,
   selectedIds,
@@ -28,6 +271,9 @@ function IngredientesPicker({
   selectedIds: number[];
   onToggle: (id: number) => void;
 }) {
+  const [panelOpen, setPanelOpen] = useState(false);
+  const [q, setQ] = useState("");
+
   if (items.length === 0) {
     return (
       <p className="text-sm font-medium text-muted italic">
@@ -36,29 +282,96 @@ function IngredientesPicker({
       </p>
     );
   }
+
+  const byId = useMemo(() => new Map(items.map((i) => [i.id, i])), [items]);
+  const seleccionados = selectedIds
+    .map((id) => byId.get(id))
+    .filter((i): i is IngredienteRead => i !== undefined);
+
+  const ordenados = [...items].sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  const sinSeleccionar = ordenados.filter((i) => !selectedIds.includes(i.id));
+  const filtrados = q.trim()
+    ? sinSeleccionar.filter((i) => i.nombre.toLowerCase().includes(q.trim().toLowerCase()))
+    : sinSeleccionar;
+
   return (
-    <div className="max-h-44 overflow-y-auto overscroll-contain rounded-xl border border-border bg-bg-secondary p-3 space-y-2">
-      {[...items]
-        .sort((a, b) => a.nombre.localeCompare(b.nombre, "es"))
-        .map((ing) => (
-          <label
-            key={ing.id}
-            className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-1.5 hover:bg-white transition-colors"
-          >
+    <div className="space-y-2">
+      {seleccionados.length > 0 ? (
+        <ul className="flex flex-wrap gap-1.5">
+          {seleccionados.map((ing) => (
+            <li
+              key={ing.id}
+              className="inline-flex max-w-full items-center gap-1.5 rounded-lg border border-success/25 bg-success/10 px-2 py-1"
+            >
+              <span className="truncate text-xs font-bold text-success">{ing.nombre}</span>
+              {ing.es_alergeno ? (
+                <span className="shrink-0 rounded-full border border-danger/20 bg-danger/10 px-1.5 py-0.5 text-[8px] font-bold uppercase tracking-widest text-danger">
+                  Alerg.
+                </span>
+              ) : null}
+              <button
+                type="button"
+                aria-label={`Quitar ${ing.nombre}`}
+                className="shrink-0 rounded-md px-1 text-sm font-bold leading-none text-success/70 hover:bg-success/15 hover:text-success"
+                onClick={() => onToggle(ing.id)}
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      <button
+        type="button"
+        onClick={() => setPanelOpen((open) => !open)}
+        className="w-full rounded-xl bg-success px-3 py-2 text-xs font-bold uppercase tracking-widest text-white shadow-sm transition-opacity hover:opacity-90 sm:w-auto"
+      >
+        + Agregar ingrediente
+      </button>
+
+      {panelOpen ? (
+        <div className="rounded-xl border border-border bg-white p-3 shadow-sm">
+          {sinSeleccionar.length > 3 ? (
             <input
-              type="checkbox"
-              className="h-4 w-4 shrink-0 rounded border-border text-accent focus:ring-accent transition-colors"
-              checked={selectedIds.includes(ing.id)}
-              onChange={() => onToggle(ing.id)}
+              type="text"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder="Filtrar…"
+              className="mb-2 w-full rounded-lg border border-border bg-bg-secondary px-2.5 py-1.5 text-xs font-bold text-primary placeholder:font-normal placeholder:text-muted focus:border-success focus:bg-white outline-none transition-all"
             />
-            <span className="text-sm font-bold text-primary flex-1 leading-tight">{ing.nombre}</span>
-            {ing.es_alergeno && (
-              <span className="shrink-0 rounded-full border border-danger/20 bg-danger/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-danger">
-                Alérgeno
-              </span>
-            )}
-          </label>
-        ))}
+          ) : null}
+          {filtrados.length === 0 ? (
+            <p className="py-2 text-center text-xs font-bold text-muted">
+              {sinSeleccionar.length === 0
+                ? "Ya agregaste todos los ingredientes."
+                : `Sin resultados para "${q}"`}
+            </p>
+          ) : (
+            <ul className="max-h-40 space-y-1 overflow-y-auto overscroll-contain sm:max-h-48">
+              {filtrados.map((ing) => (
+                <li key={ing.id}>
+                  <button
+                    type="button"
+                    className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left transition-colors hover:bg-bg-secondary"
+                    onClick={() => {
+                      onToggle(ing.id);
+                      setQ("");
+                    }}
+                  >
+                    <span className="flex-1 text-sm font-bold text-primary leading-tight">{ing.nombre}</span>
+                    {ing.es_alergeno ? (
+                      <span className="shrink-0 rounded-full border border-danger/20 bg-danger/10 px-2 py-0.5 text-[9px] font-bold uppercase tracking-widest text-danger">
+                        Alérgeno
+                      </span>
+                    ) : null}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -82,7 +395,6 @@ const EDIT_FORM_INICIAL: EditForm = {
 };
 
 export function AdminProductosPage() {
-  // cargo los datos del back
   const { data, isLoading } = useProductos({ page: 1, size: 100 });
   const { data: categorias = [], isLoading: categoriasLoading } = useCategorias();
   const { data: todosIngredientes = [] } = useIngredientesTodos();
@@ -90,25 +402,14 @@ export function AdminProductosPage() {
   const actualizarProducto = useActualizarProducto();
 
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [categoriaFiltroId, setCategoriaFiltroId] = useState<number | null>(null);
 
   // ── Estado del modal de edición ──────────────────────────────────────────
   const [editProduct, setEditProduct] = useState<ProductoListadoItemDTO | null>(null);
   const [editForm, setEditForm] = useState<EditForm>(EDIT_FORM_INICIAL);
 
-  // ── Opciones de categoría para selects ──────────────────────────────────
-  const opcionesCategoria = useMemo(() => {
-    const arbol = buildCategoriaArbol(categorias);
-    return aplanarCategoriasParaSelect(arbol);
-  }, [categorias]);
-
-  // Mapa id → nombre para mostrar en la tabla
-  const categoriaById = useMemo(() => {
-    const m = new Map<number, string>();
-    for (const c of categorias) m.set(c.id, c.nombre);
-    return m;
-  }, [categorias]);
-
-  // ── Formulario de creación ───────────────────────────────────────────────
+  // ── Estado del formulario de creación ────────────────────────────────────
   const [form, setForm] = useState({
     categoria_id: "",
     nombre: "",
@@ -117,6 +418,20 @@ export function AdminProductosPage() {
     ingredientes_ids: [] as number[],
   });
 
+  // ── Opciones de categoría para selects ──────────────────────────────────
+  const opcionesCategoria = useMemo(() => {
+    const arbol = buildCategoriaArbol(categorias);
+    return aplanarCategoriasParaSelect(arbol);
+  }, [categorias]);
+
+  const arbolCategorias = useMemo(() => buildCategoriaArbol(categorias), [categorias]);
+
+  const categoriaById = useMemo(() => {
+    const m = new Map<number, string>();
+    for (const c of categorias) m.set(c.id, c.nombre);
+    return m;
+  }, [categorias]);
+
   useEffect(() => {
     setForm((f) => {
       if (f.categoria_id !== "" || opcionesCategoria.length === 0) return f;
@@ -124,16 +439,42 @@ export function AdminProductosPage() {
     });
   }, [opcionesCategoria]);
 
-  const items = data?.items ?? [];
+  const allItems = data?.items ?? [];
+
+  const conteoPorCategoria = useMemo(() => {
+    const m = new Map<number, number>();
+    for (const p of allItems) {
+      m.set(p.categoria_id, (m.get(p.categoria_id) ?? 0) + 1);
+    }
+    return m;
+  }, [allItems]);
+
+  function contarEnScope(catId: number): number {
+    const ids = getCategoryScopeIds(arbolCategorias, catId);
+    let total = 0;
+    for (const id of ids) {
+      total += conteoPorCategoria.get(id) ?? 0;
+    }
+    return total;
+  }
+
+  const items = useMemo(() => {
+    if (categoriaFiltroId === null) return allItems;
+    const ids = getCategoryScopeIds(arbolCategorias, categoriaFiltroId);
+    return allItems.filter((p) => ids.has(p.categoria_id));
+  }, [allItems, arbolCategorias, categoriaFiltroId]);
+
+  const categoriaFiltroLabel = useMemo(() => {
+    if (categoriaFiltroId === null) return null;
+    return categoriaById.get(categoriaFiltroId) ?? null;
+  }, [categoriaFiltroId, categoriaById]);
 
   const pendingDelete = useMemo(
     () => items.find((p) => p.id === deleteId)?.nombre ?? "",
     [deleteId, items],
   );
 
-  // ── Helpers del modal de edición ─────────────────────────────────────────
   function abrirEditar(p: ProductoListadoItemDTO) {
-    // abro el modal con los datos cargados
     setEditProduct(p);
     setEditForm({
       nombre: p.nombre,
@@ -148,6 +489,29 @@ export function AdminProductosPage() {
   function cerrarEditar() {
     setEditProduct(null);
     setEditForm(EDIT_FORM_INICIAL);
+  }
+
+  function abrirCrear() {
+    setForm((f) => ({
+      ...f,
+      nombre: "",
+      precio: "",
+      descripcion: "",
+      ingredientes_ids: [],
+      categoria_id:
+        categoriaFiltroId !== null
+          ? String(categoriaFiltroId)
+          : f.categoria_id !== ""
+            ? f.categoria_id
+            : opcionesCategoria.length > 0
+              ? String(opcionesCategoria[0].id)
+              : "",
+    }));
+    setCreateOpen(true);
+  }
+
+  function cerrarCrear() {
+    setCreateOpen(false);
   }
 
   function toggleIngredienteCreate(id: number) {
@@ -168,6 +532,48 @@ export function AdminProductosPage() {
     }));
   }
 
+  function handleCrear(e: React.FormEvent) {
+    e.preventDefault();
+    const categoria_id = Number(form.categoria_id);
+    const precio = Number(form.precio);
+    if (!form.nombre.trim()) {
+      toast.error("Indicá el nombre del producto.");
+      return;
+    }
+    if (!Number.isFinite(precio) || precio <= 0) {
+      toast.error("El precio tiene que ser un número mayor a 0.");
+      return;
+    }
+    const idsValidos = new Set(opcionesCategoria.map((o) => o.id));
+    if (!Number.isFinite(categoria_id) || !idsValidos.has(categoria_id)) {
+      toast.error("Seleccioná una categoría válida del listado.");
+      return;
+    }
+    const ingredientesPayload = form.ingredientes_ids.map((ingId) => ({
+      ingrediente_id: ingId,
+      cantidad: 1,
+      es_removible: true,
+    }));
+    crear.mutate(
+      {
+        categoria_id: Number.isFinite(categoria_id) && categoria_id >= 1 ? categoria_id : 1,
+        nombre: form.nombre.trim(),
+        precio,
+        descripcion: form.descripcion.trim() || null,
+        ingredientes: ingredientesPayload as unknown[],
+      },
+      {
+        onSuccess: () => {
+          toast.success("Producto creado.");
+          cerrarCrear();
+        },
+        onError: (err) => {
+          toast.error(apiErrorDetail(err, "No se pudo crear el producto."));
+        },
+      },
+    );
+  }
+
   function guardarEdicion() {
     if (!editProduct) return;
 
@@ -186,7 +592,6 @@ export function AdminProductosPage() {
       return;
     }
 
-    // Preservar cantidad existente para ingredientes que ya tenía el producto
     const cantidadesPrevias = new Map(
       (editProduct.ingredientes ?? []).map((i) => [i.ingrediente_id, Number(i.cantidad)]),
     );
@@ -215,7 +620,6 @@ export function AdminProductosPage() {
           cerrarEditar();
         },
         onError: (err) => {
-          // si falla muestro el error en un toast
           toast.error(apiErrorDetail(err, "No se pudo actualizar el producto."));
         },
       },
@@ -233,186 +637,197 @@ export function AdminProductosPage() {
   }
 
   return (
-    <div className="min-w-0 max-w-full max-md:overflow-x-clip space-y-8 pb-16 max-md:mx-0 sm:space-y-12 sm:pb-20 md:overflow-x-visible">
-      {/* ── Formulario de creación ─────────────────────────────────────── */}
-      <section className="min-w-0 max-w-full rounded-2xl border border-border bg-white p-4 shadow-sm max-md:px-3 md:p-8">
-        <h2 className="mb-6 border-b border-border pb-4 text-sm font-bold uppercase tracking-widest text-primary">
-          Nuevo Producto
-        </h2>
-        <form
-          className="space-y-6"
-          onSubmit={(e) => {
-            e.preventDefault();
-            const categoria_id = Number(form.categoria_id);
-            const precio = Number(form.precio);
-            if (!form.nombre.trim()) {
-              toast.error("Indicá el nombre del producto.");
-              return;
-            }
-            if (!Number.isFinite(precio) || precio <= 0) {
-              toast.error("El precio tiene que ser un número mayor a 0.");
-              return;
-            }
-            const idsValidos = new Set(opcionesCategoria.map((o) => o.id));
-            if (!Number.isFinite(categoria_id) || !idsValidos.has(categoria_id)) {
-              toast.error("Seleccioná una categoría válida del listado.");
-              return;
-            }
-            const ingredientesPayload = form.ingredientes_ids.map((ingId) => ({
-              ingrediente_id: ingId,
-              cantidad: 1,
-              es_removible: true,
-            }));
-            crear.mutate({
-              categoria_id: Number.isFinite(categoria_id) && categoria_id >= 1 ? categoria_id : 1,
-              nombre: form.nombre.trim(),
-              precio,
-              descripcion: form.descripcion.trim() || null,
-              ingredientes: ingredientesPayload as unknown[],
-            });
-            setForm({
-              categoria_id: form.categoria_id,
-              nombre: "",
-              precio: "",
-              descripcion: "",
-              ingredientes_ids: [],
-            });
-          }}
-        >
-          <div className="grid min-w-0 grid-cols-1 items-end gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <FormField label="Categoría" className="min-w-0 lg:col-span-1">
-            <AdminConstrainedSelect
-              value={form.categoria_id}
-              onChange={(v) => setForm((f) => ({ ...f, categoria_id: v }))}
-              options={opcionesCategoria.map((o) => ({ value: String(o.id), label: o.label }))}
-              placeholder="Sin categorías"
-            />
-          </FormField>
+    <div className="flex h-full min-h-0 flex-col gap-2 md:gap-3">
 
-          <FormField label="Nombre" className="lg:col-span-1">
-            <input
-              className="mt-1 w-full bg-bg-secondary border border-border rounded-xl px-4 py-3 text-sm font-bold text-primary focus:border-accent focus:bg-white outline-none transition-all"
-              placeholder="Ej: Hamburguesa Simple"
-              value={form.nombre}
-              onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
-            />
-          </FormField>
+      <div className="shrink-0 flex flex-wrap items-center gap-2">
+        <h2 className="text-[10px] font-bold uppercase tracking-widest text-primary md:hidden">Productos</h2>
+        <CategoriasNavDesplegable
+          arbol={arbolCategorias}
+          categoriaFiltroId={categoriaFiltroId}
+          onSelect={setCategoriaFiltroId}
+          contarEnScope={contarEnScope}
+          totalItems={allItems.length}
+          categoriaById={categoriaById}
+        />
+        <button type="button" onClick={abrirCrear} className="admin-btn-primary ml-auto shrink-0">
+          + Nuevo Producto
+        </button>
+      </div>
 
-          <FormField label="Precio" className="lg:col-span-1">
-            <input
-              type="number"
-              step="0.01"
-              min="0"
-              className="mt-1 w-full bg-bg-secondary border border-border rounded-xl px-4 py-3 text-sm font-bold text-primary focus:border-accent focus:bg-white outline-none transition-all"
-              value={form.precio}
-              onChange={(e) => setForm((f) => ({ ...f, precio: e.target.value }))}
-            />
-          </FormField>
-
-          <div className="lg:col-span-1">
-            <LoadingButton
-              type="submit"
-              isLoading={crear.isPending}
-              className="w-full h-[46px] bg-primary text-white font-bold text-sm rounded-xl hover:bg-primary-hover shadow-sm transition-all"
-            >
-              Confirmar Alta
-            </LoadingButton>
-          </div>
-          </div>
-
-        <p className="text-xs font-medium text-muted -mt-2">
-          <strong>Descripción:</strong> se muestra en la tienda y, si tenés imagen automática (Groq), ayuda a generar
-          una foto acorde al plato.
+      {categoriaFiltroLabel ? (
+        <p className="shrink-0 text-[10px] font-bold text-muted">
+          Mostrando <span className="text-primary">{items.length}</span> producto{items.length === 1 ? "" : "s"} en{" "}
+          <span className="text-primary">{categoriaFiltroLabel}</span>
+          {categoriaFiltroId !== null && categoriaTieneHijos(arbolCategorias, categoriaFiltroId)
+            ? " (incluye subcategorías)"
+            : ""}
         </p>
-        <FormField label="Descripción (opcional)">
-          <textarea
-            className="mt-1 min-h-[88px] w-full rounded-xl border border-border bg-bg-secondary px-4 py-3 text-sm font-bold text-primary focus:border-accent focus:bg-white outline-none transition-all resize-y"
-            maxLength={10000}
-            rows={3}
-            placeholder="Ej: medallon de carne, cheddar, panceta crocante y salsa BBQ ahumada."
-            value={form.descripcion}
-            onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))}
-          />
-        </FormField>
+      ) : null}
 
-        <div className="border-t border-border pt-6">
-          <p className="text-xs font-bold uppercase tracking-widest text-muted mb-3">Ingredientes (opcional)</p>
-          <IngredientesPicker
-            items={todosIngredientes}
-            selectedIds={form.ingredientes_ids}
-            onToggle={toggleIngredienteCreate}
-          />
-        </div>
-        </form>
-      </section>
-
-      {/* ── Tabla de productos ─────────────────────────────────────────── */}
-      <div className="max-w-full overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
-        <div className="overflow-x-auto overscroll-x-contain -mx-0">
-          <table className="w-full min-w-[820px] border-collapse text-left">
-            <thead className="bg-bg-secondary border-b border-border">
+      <section className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain rounded-xl border border-border bg-white shadow-sm md:overflow-hidden md:p-0">
+        <div className="md:h-full md:overflow-y-auto md:overscroll-y-contain">
+          <table className="admin-table w-full min-w-0 border-collapse text-left">
+            <thead className="border-b border-border">
               <tr>
-                <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-muted">ID</th>
-                {/* TODO: mostrar imagen del producto en la tabla admin */}
-                <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-muted">Nombre</th>
-                <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-muted">Categoría</th>
-                <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-muted">Precio</th>
-                <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-muted">Disponibilidad</th>
-                <th className="px-4 py-4 text-right text-xs font-bold uppercase tracking-widest text-muted">Acciones</th>
+                <th className="hidden lg:table-cell">ID</th>
+                <th>Producto</th>
+                <th className="hidden lg:table-cell">Categoría</th>
+                <th>Precio</th>
+                <th>Estado</th>
+                <th className="text-right">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {items.map((p) => (
-                <tr key={p.id} className="hover:bg-bg-secondary/50 transition-colors">
-                  <td className="px-4 py-4 font-outfit text-sm font-black text-primary">#{p.id}</td>
-                  <td className="px-4 py-4">
-                    <span className="text-sm font-bold text-primary">{p.nombre}</span>
-                  </td>
-                  <td className="px-4 py-4">
-                    <span className="text-sm font-medium text-muted">
-                      {categoriaById.get(p.categoria_id) ?? "—"}
-                    </span>
-                  </td>
-                  <td className="px-4 py-4 text-sm font-bold text-primary whitespace-nowrap">
-                    {formatMoney(typeof p.precio === "number" ? p.precio : Number(p.precio))}
-                  </td>
-                  <td className="px-4 py-4">
-                    <button
-                      type="button"
-                      className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest border transition-all ${
-                        p.disponible
-                          ? "bg-accent/10 text-accent border-accent/20"
-                          : "bg-muted/10 text-muted border-muted/20"
-                      }`}
-                      onClick={() => patch.mutate({ id: p.id, body: { disponible: !p.disponible } })}
-                    >
-                      {p.disponible ? "Activo" : "Pausado"}
-                    </button>
-                  </td>
-                  <td className="px-4 py-4 text-right">
-                    <div className="flex justify-end gap-4">
-                      <button
-                        type="button"
-                        className="text-xs font-bold uppercase tracking-widest text-muted hover:text-primary transition-colors"
-                        onClick={() => abrirEditar(p)}
-                      >
-                        Editar
-                      </button>
-                      <button
-                        type="button"
-                        className="text-xs font-bold text-danger hover:text-danger/80 transition-colors uppercase tracking-widest"
-                        onClick={() => setDeleteId(p.id)}
-                      >
-                        Eliminar
-                      </button>
-                    </div>
+              {items.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="py-8 text-center text-[10px] font-bold uppercase tracking-widest text-muted">
+                    {allItems.length === 0
+                      ? 'No hay productos. Usá el botón "+ Nuevo Producto" para crear el primero.'
+                      : categoriaFiltroId !== null
+                        ? `No hay productos en "${categoriaFiltroLabel ?? "esta categoría"}".`
+                        : "No hay productos para mostrar."}
                   </td>
                 </tr>
-              ))}
+              ) : (
+                items.map((p) => (
+                  <tr key={p.id} className="transition-colors hover:bg-bg-secondary/50">
+                    <td className="hidden font-outfit text-xs font-black text-primary lg:table-cell">#{p.id}</td>
+                    <td>
+                      <span className="block text-xs font-bold text-primary">{p.nombre}</span>
+                      <span className="mt-0.5 block truncate text-[10px] font-bold text-muted lg:hidden">
+                        {categoriaById.get(p.categoria_id) ?? "—"} · #{p.id}
+                      </span>
+                    </td>
+                    <td className="hidden lg:table-cell">
+                      <span className="text-xs font-medium text-muted">{categoriaById.get(p.categoria_id) ?? "—"}</span>
+                    </td>
+                    <td className="whitespace-nowrap text-xs font-bold text-primary">
+                      {formatMoney(typeof p.precio === "number" ? p.precio : Number(p.precio))}
+                    </td>
+                    <td>
+                      <button
+                        type="button"
+                        className={`rounded-full border px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest transition-all ${
+                          p.disponible
+                            ? "border-success/25 bg-success/10 text-success"
+                            : "border-muted/20 bg-muted/10 text-muted"
+                        }`}
+                        onClick={() => patch.mutate({ id: p.id, body: { disponible: !p.disponible } })}
+                      >
+                        <span className="md:hidden">{p.disponible ? "Disp." : "Pausa"}</span>
+                        <span className="hidden md:inline">{p.disponible ? "Disponible" : "Pausado"}</span>
+                      </button>
+                    </td>
+                    <td className="text-right">
+                      <div className="flex justify-end gap-1.5">
+                        <button
+                          type="button"
+                          className="text-[10px] font-bold uppercase tracking-widest text-muted transition-colors hover:text-primary"
+                          onClick={() => abrirEditar(p)}
+                        >
+                          Editar
+                        </button>
+                        <button
+                          type="button"
+                          className="text-[10px] font-bold uppercase tracking-widest text-danger transition-colors hover:text-danger/80"
+                          onClick={() => setDeleteId(p.id)}
+                        >
+                          Eliminar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
+
+      {/* ── Modal de creación ─────────────────────────────────────────────── */}
+      {createOpen && (
+        <ModalLayer>
+          <div
+            className="fixed inset-0 z-[200] flex items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4"
+            role="dialog"
+            aria-modal="true"
+          >
+            <div className="fade-in w-full min-w-0 max-w-lg max-md:max-w-[calc(100vw-1rem)] rounded-t-2xl border border-border bg-white p-4 shadow-xl max-md:mx-auto sm:rounded-2xl pb-[max(1rem,env(safe-area-inset-bottom))]">
+              <h3 className="text-sm font-bold uppercase tracking-widest text-primary border-b border-border pb-3 mb-4">
+                Nuevo Producto
+              </h3>
+              <form className="space-y-3" onSubmit={handleCrear}>
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField label="Categoría" className="min-w-0 col-span-2 sm:col-span-1">
+                    <AdminConstrainedSelect
+                      value={form.categoria_id}
+                      onChange={(v) => setForm((f) => ({ ...f, categoria_id: v }))}
+                      options={opcionesCategoria.map((o) => ({ value: String(o.id), label: o.label }))}
+                      placeholder="Sin categorías"
+                    />
+                  </FormField>
+                  <FormField label="Precio ($)" className="col-span-2 sm:col-span-1">
+                    <input
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      className="mt-1 w-full bg-bg-secondary border border-border rounded-xl px-3 py-2 text-sm font-bold text-primary focus:border-accent focus:bg-white outline-none transition-all"
+                      value={form.precio}
+                      onChange={(e) => setForm((f) => ({ ...f, precio: e.target.value }))}
+                    />
+                  </FormField>
+                </div>
+
+                <FormField label="Nombre">
+                  <input
+                    className="mt-1 w-full bg-bg-secondary border border-border rounded-xl px-3 py-2 text-sm font-bold text-primary focus:border-accent focus:bg-white outline-none transition-all"
+                    placeholder="Ej: Hamburguesa Simple"
+                    value={form.nombre}
+                    onChange={(e) => setForm((f) => ({ ...f, nombre: e.target.value }))}
+                  />
+                </FormField>
+
+                <FormField label="Descripción (opcional)">
+                  <textarea
+                    className="mt-1 w-full rounded-xl border border-border bg-bg-secondary px-3 py-2 text-sm font-bold text-primary focus:border-accent focus:bg-white outline-none transition-all resize-none"
+                    maxLength={10000}
+                    rows={2}
+                    placeholder="Ej: medallón de carne, cheddar, panceta crocante…"
+                    value={form.descripcion}
+                    onChange={(e) => setForm((f) => ({ ...f, descripcion: e.target.value }))}
+                  />
+                </FormField>
+
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-widest text-muted mb-2">Ingredientes (opcional)</p>
+                  <IngredientesPicker
+                    items={todosIngredientes}
+                    selectedIds={form.ingredientes_ids}
+                    onToggle={toggleIngredienteCreate}
+                  />
+                </div>
+
+                <div className="pt-1 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                  <button
+                    type="button"
+                    onClick={cerrarCrear}
+                    className="w-full rounded-xl border border-border px-4 py-2.5 text-sm font-bold text-muted hover:bg-bg-secondary transition-colors sm:w-auto"
+                  >
+                    Cancelar
+                  </button>
+                  <LoadingButton
+                    type="submit"
+                    isLoading={crear.isPending}
+                    className="w-full rounded-xl bg-primary px-6 py-2.5 text-sm font-bold text-white hover:bg-primary-hover shadow-sm sm:w-auto"
+                  >
+                    Crear Producto
+                  </LoadingButton>
+                </div>
+              </form>
+            </div>
+          </div>
+        </ModalLayer>
+      )}
 
       {/* ── Modal de edición ──────────────────────────────────────────────── */}
       {editProduct !== null && (
@@ -422,13 +837,12 @@ export function AdminProductosPage() {
             role="dialog"
             aria-modal="true"
           >
-            <div className="fade-in max-h-[min(92dvh,100vh)] w-full min-w-0 max-w-lg max-md:max-w-[calc(100vw-1rem)] overflow-x-hidden overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-white p-4 shadow-xl max-md:mx-auto sm:rounded-2xl sm:p-6 md:p-8 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
-            <h3 className="text-sm font-bold uppercase tracking-widest text-primary border-b border-border pb-4 mb-6">
+            <div className="fade-in w-full min-w-0 max-w-lg max-md:max-w-[calc(100vw-1rem)] max-h-[min(92dvh,100vh)] overflow-y-auto overscroll-contain rounded-t-2xl border border-border bg-white p-4 shadow-xl max-md:mx-auto sm:rounded-2xl pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <h3 className="text-sm font-bold uppercase tracking-widest text-primary border-b border-border pb-3 mb-4">
               Editar producto <span className="font-outfit font-black">#{editProduct.id}</span>
             </h3>
 
-            <div className="space-y-4">
-              {/* Nombre */}
+            <div className="space-y-3">
               <FormField label="Nombre">
                 <input
                   className="mt-1 w-full rounded-xl border border-border bg-bg-secondary px-4 py-3 text-sm font-bold text-primary focus:border-accent focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent transition-all"
@@ -438,7 +852,6 @@ export function AdminProductosPage() {
                 />
               </FormField>
 
-              {/* Precio */}
               <FormField label="Precio ($)">
                 <input
                   type="number"
@@ -450,7 +863,6 @@ export function AdminProductosPage() {
                 />
               </FormField>
 
-              {/* Descripción */}
               <FormField label="Descripción (opcional)">
                 <textarea
                   className="mt-1 min-h-[80px] w-full rounded-xl border border-border bg-bg-secondary px-4 py-3 text-sm font-bold text-primary focus:border-accent focus:bg-white focus:outline-none focus:ring-1 focus:ring-accent transition-all resize-y"
@@ -461,7 +873,6 @@ export function AdminProductosPage() {
                 />
               </FormField>
 
-              {/* Categoría */}
               <FormField label="Categoría" className="min-w-0">
                 <AdminConstrainedSelect
                   value={editForm.categoria_id}
@@ -471,7 +882,6 @@ export function AdminProductosPage() {
                 />
               </FormField>
 
-              {/* Disponible */}
               <div className="pt-1">
                 <label className="flex cursor-pointer items-center gap-3 text-xs font-bold uppercase tracking-widest text-muted hover:text-primary transition-colors max-w-fit">
                   <input
@@ -484,7 +894,6 @@ export function AdminProductosPage() {
                 </label>
               </div>
 
-              {/* Ingredientes */}
               <div>
                 <p className="text-xs font-bold uppercase tracking-widest text-muted mb-3">Ingredientes</p>
                 <IngredientesPicker
@@ -495,7 +904,6 @@ export function AdminProductosPage() {
               </div>
             </div>
 
-            {/* Botones */}
             <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <button
                 type="button"

@@ -29,11 +29,23 @@
     --admin-sidebar-brand: #fb923c;
     --admin-topbar-bg: rgb(255 255 255 / 0.9);
     --admin-topbar-border: rgb(100 116 139 / 0.2);
+
+    /* Kitchen Display (KDS) — dark, high-contrast */
+    --kds-shell: #090d12;
+    --kds-surface: #0f141c;
+    --kds-surface-raised: #151c26;
+    --kds-border: rgb(148 163 184 / 0.14);
+    --kds-fg: #e2e8f0;
+    --kds-muted: rgb(148 163 184 / 0.72);
+    --kds-pending: #f59e0b;
+    --kds-prep: #3b82f6;
   }
 
   html {
     @apply text-[14px] md:text-[16px];
     overflow-x: clip;
+    /* Siempre reserva la franja de la barra vertical (evita corrimiento al cambiar de ruta en Windows) */
+    overflow-y: scroll;
   }
 
   @media (prefers-reduced-motion: no-preference) {
@@ -76,6 +88,73 @@
     background-color: var(--admin-topbar-bg);
     border-color: var(--admin-topbar-border);
   }
+
+  .admin-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: var(--color-bg-secondary);
+    @apply px-2 py-1.5 text-[9px] font-bold uppercase tracking-widest text-muted;
+  }
+
+  @media (min-width: 768px) {
+    .admin-table thead th {
+      @apply px-3 py-2 text-[10px];
+    }
+  }
+
+  .admin-table tbody td {
+    @apply px-2 py-1.5 align-middle text-xs;
+  }
+
+  @media (min-width: 768px) {
+    .admin-table tbody td {
+      @apply px-3 py-2;
+    }
+  }
+
+  .admin-panel {
+    @apply rounded-xl border border-border bg-white p-2 shadow-sm md:p-3;
+  }
+
+  .admin-btn-primary {
+    @apply shrink-0 rounded-lg bg-primary px-2.5 py-1 text-[10px] font-bold text-white shadow-sm transition-all hover:bg-primary-hover md:px-3 md:py-1.5 md:text-[11px];
+  }
+
+  .kds-shell {
+    background-color: var(--kds-shell);
+    color: var(--kds-fg);
+  }
+
+  .kds-topbar {
+    background-color: var(--kds-surface);
+    border-bottom: 1px solid var(--kds-border);
+  }
+
+  .kds-stat {
+    @apply inline-flex items-center gap-1.5 rounded-lg border px-2 py-1 text-[10px] font-bold uppercase tracking-wider;
+    border-color: var(--kds-border);
+    background-color: var(--kds-surface-raised);
+    color: var(--kds-muted);
+  }
+
+  .kds-column {
+    @apply flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl;
+    background-color: var(--kds-surface);
+    border: 1px solid var(--kds-border);
+  }
+
+  .kds-column-header {
+    @apply flex shrink-0 items-center justify-between gap-2 px-2.5 py-2;
+    border-bottom: 1px solid var(--kds-border);
+    background-color: var(--kds-surface-raised);
+  }
+
+  .kds-card {
+    @apply relative overflow-hidden rounded-lg border p-2 transition-colors;
+    background-color: var(--kds-surface-raised);
+    border-color: var(--kds-border);
+  }
 }
 
 /* Animations for professional look */
@@ -84,8 +163,12 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

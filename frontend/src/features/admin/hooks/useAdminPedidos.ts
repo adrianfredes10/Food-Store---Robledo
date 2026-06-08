@@ -8,7 +8,7 @@ export function useAdminPedidosList(page: number) {
   // cargo los pedidos del back
   return useQuery({
     queryKey: ["admin", "pedidos", page] as const,
-    queryFn: () => getAdminPedidos(page, 20),
+    queryFn: () => getAdminPedidos(page, 10),
   });
 }
 

@@ -124,14 +124,19 @@ export function AuthLoginPage() {
           </div>
 
           {mode === "login" && (
-            <div className="mt-3 rounded-xl border border-border bg-bg-secondary px-3 py-2 text-center sm:mt-4 sm:p-3">
+            <div className="mt-3 space-y-2 rounded-xl border border-border bg-bg-secondary px-3 py-2 text-center sm:mt-4 sm:p-3">
               <p className="text-[9px] font-bold uppercase tracking-widest text-muted sm:text-[10px]">
                 Credenciales demo
               </p>
-              <p className="mt-1 break-all font-mono text-[10px] font-bold leading-snug text-primary sm:text-xs">
-                <span className="font-sans font-medium text-muted">User </span>admin@foodstore.com
+              <p className="break-all font-mono text-[10px] font-bold leading-snug text-primary sm:text-xs">
+                <span className="font-sans font-medium text-muted">Admin </span>admin@foodstore.com
                 <span className="mx-1 text-border">·</span>
                 <span className="font-sans font-medium text-muted">Pass </span>Admin1234!
+              </p>
+              <p className="break-all font-mono text-[10px] font-bold leading-snug text-primary sm:text-xs">
+                <span className="font-sans font-medium text-muted">Cocina </span>cocina@foodstore.com
+                <span className="mx-1 text-border">·</span>
+                <span className="font-sans font-medium text-muted">Pass </span>Cocina1234!
               </p>
             </div>
           )}

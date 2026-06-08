@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 from app.integrations.producto_imagen_groq import (
     groq_generar_prompt_imagen,
+    materializar_imagen_producto,
     pollinations_url_desde_prompt,
 )
 
@@ -13,7 +14,8 @@ from app.integrations.producto_imagen_groq import (
 def test_pollinations_url_encodes_prompt_y_parametros() -> None:
     url = pollinations_url_desde_prompt("  gourmet burger  ")
     assert url.startswith("https://image.pollinations.ai/prompt/")
-    assert "width=768" in url
+    assert "width=512" in url
+    assert "height=512" in url
     assert "nologo=true" in url
 
 
@@ -48,3 +50,44 @@ def test_groq_generar_prompt_imagen_parsea_choice(mock_client_cls: MagicMock) ->
     payload = call_kw[1]["json"]
     assert payload["model"] == "llama-3.3-70b-versatile"
     assert "Pizza napolitana" in payload["messages"][1]["content"]
+
+
+@patch("app.integrations.producto_imagen_groq.httpx.Client")
+def test_materializar_imagen_guarda_y_devuelve_url_local(mock_client_cls: MagicMock, tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr("app.integrations.producto_imagen_groq.producto_imagenes_dir", lambda: tmp_path)
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.content = b"x" * 300
+    mock_resp.headers = {"content-type": "image/jpeg"}
+    mock_inst = MagicMock()
+    mock_inst.get.return_value = mock_resp
+    mock_inst.__enter__.return_value = mock_inst
+    mock_inst.__exit__.return_value = None
+    mock_client_cls.return_value = mock_inst
+
+    out = materializar_imagen_producto(
+        url_remota="https://image.pollinations.ai/prompt/foo",
+        producto_id=7,
+        public_base_url="http://api.test",
+    )
+    assert out == "http://api.test/static/productos/7.jpg"
+    assert (tmp_path / "7.jpg").read_bytes() == b"x" * 300
+
+
+@patch("app.integrations.producto_imagen_groq.httpx.Client")
+def test_materializar_imagen_fallback_si_respuesta_corta(mock_client_cls: MagicMock, tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr("app.integrations.producto_imagen_groq.producto_imagenes_dir", lambda: tmp_path)
+    mock_resp = MagicMock()
+    mock_resp.raise_for_status = MagicMock()
+    mock_resp.content = b"nope"
+    mock_resp.headers = {"content-type": "image/jpeg"}
+    mock_inst = MagicMock()
+    mock_inst.get.return_value = mock_resp
+    mock_inst.__enter__.return_value = mock_inst
+    mock_inst.__exit__.return_value = None
+    mock_client_cls.return_value = mock_inst
+
+    remote = "https://image.pollinations.ai/prompt/abc"
+    out = materializar_imagen_producto(url_remota=remote, producto_id=1, public_base_url="http://x.test")
+    assert out == remote
+    assert not list(tmp_path.iterdir())

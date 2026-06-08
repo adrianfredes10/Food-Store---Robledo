@@ -21,4 +21,4 @@
 
 ## Estado OPSX
 
-Change **implementado en el repo**. Archivar explícitamente con `/opsx:archive` si se desea mover esta carpeta a un flujo OPSX cerrado paralelo al resto de `us-*`.
+Change **implementado y archivado** ✅ · ver `openspec/CHANGES_MAP.md`.

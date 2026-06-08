@@ -40,6 +40,11 @@ export function useLogin() {
         return;
       }
 
+      if (profile?.roles?.includes("COCINA")) {
+        navigate("/cocina", { replace: true });
+        return;
+      }
+
       const from = (location.state as { from?: string } | null)?.from;
       const target =
         typeof from === "string" && from.length > 0 && !from.startsWith("/login") ? from : "/";

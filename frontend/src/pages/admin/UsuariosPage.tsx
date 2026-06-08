@@ -15,6 +15,20 @@ function formatFecha(iso: string | null | undefined): string {
   return d.toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" });
 }
 
+function badgeActivo(activo: boolean) {
+  return (
+    <span
+      className={`inline-block rounded-full border px-2 py-0.5 text-[8px] font-bold uppercase tracking-widest ${
+        activo
+          ? "border-success/25 bg-success/10 text-success"
+          : "border-muted/20 bg-muted/10 text-muted"
+      }`}
+    >
+      {activo ? "Sí" : "No"}
+    </span>
+  );
+}
+
 export function AdminUsuariosPage() {
   const [page, setPage] = useState(1);
   const { data, isLoading } = useAdminUsuariosList(page);
@@ -30,75 +44,70 @@ export function AdminUsuariosPage() {
   }
 
   return (
-    <div className="min-w-0 max-w-full max-md:overflow-x-clip space-y-6 pb-16 sm:space-y-8 sm:pb-20 md:overflow-x-visible">
-      <p className="text-xs font-bold uppercase tracking-widest text-muted max-w-2xl leading-relaxed">
-        Listado de cuentas registradas (solo lectura).
-      </p>
+    <div className="flex h-full min-h-0 flex-col gap-2">
+      <div className="shrink-0 border-b border-border/80 pb-2 md:border-0 md:pb-0">
+        <h2 className="text-[10px] font-bold uppercase tracking-widest text-primary">Usuarios</h2>
+      </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border bg-white shadow-sm">
-        <div className="overflow-x-auto overscroll-x-contain">
-          <table className="w-full min-w-[920px] border-collapse text-left">
-            <thead className="bg-bg-secondary border-b border-border">
+      <section className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain rounded-xl border border-border bg-white shadow-sm md:overflow-hidden md:p-0">
+        <div className="md:h-full md:overflow-y-auto md:overscroll-y-contain">
+          <table className="admin-table w-full min-w-0 border-collapse text-left">
+            <thead className="border-b border-border">
               <tr>
-                <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-muted">ID</th>
-                <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-muted">Nombre</th>
-                <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-muted">Email</th>
-                <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-muted">Roles</th>
-                <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-muted">Alta</th>
-                <th className="px-4 py-4 text-xs font-bold uppercase tracking-widest text-muted">Activo</th>
+                <th className="hidden lg:table-cell">ID</th>
+                <th>Usuario</th>
+                <th className="hidden lg:table-cell">Email</th>
+                <th>Roles</th>
+                <th className="hidden md:table-cell">Alta</th>
+                <th>Activo</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {data?.items.map((u) => (
-                <tr key={u.id} className="hover:bg-bg-secondary/50 transition-colors">
-                  <td className="px-4 py-4 font-outfit text-sm font-black text-primary">#{u.id}</td>
-                  <td className="px-4 py-4">
-                    <span className="text-sm font-bold text-primary">{nombreCompleto(u)}</span>
+                <tr key={u.id} className="transition-colors hover:bg-bg-secondary/50">
+                  <td className="hidden font-outfit text-xs font-black text-primary lg:table-cell">#{u.id}</td>
+                  <td>
+                    <span className="block text-xs font-bold text-primary">{nombreCompleto(u)}</span>
+                    <span className="mt-0.5 block break-all text-[10px] font-bold text-muted lg:hidden">{u.email}</span>
                     {u.telefono?.trim() ? (
-                      <span className="mt-1 block text-xs font-bold text-muted">{u.telefono}</span>
+                      <span className="mt-0.5 block text-[10px] font-bold text-muted">{u.telefono}</span>
                     ) : null}
                   </td>
-                  <td className="px-4 py-4 max-w-[14rem]">
-                    <span className="break-all text-xs font-bold text-muted">{u.email}</span>
+                  <td className="hidden max-w-[12rem] lg:table-cell">
+                    <span className="break-all text-[10px] font-bold text-muted">{u.email}</span>
                   </td>
-                  <td className="px-4 py-4">
-                    <span className="text-xs font-bold text-primary">{u.roles.join(", ") || "—"}</span>
+                  <td className="max-w-[7rem] md:max-w-none">
+                    <span className="block truncate text-[10px] font-bold text-primary">{u.roles.join(", ") || "—"}</span>
                   </td>
-                  <td className="px-4 py-4 whitespace-nowrap text-xs font-bold text-muted">
+                  <td className="hidden whitespace-nowrap text-[10px] font-bold text-muted md:table-cell">
                     {formatFecha(u.created_at)}
                   </td>
-                  <td className="px-4 py-4">
-                    <span
-                      className={`text-xs font-bold uppercase tracking-widest ${u.activo ? "text-accent" : "text-danger"}`}
-                    >
-                      {u.activo ? "Sí" : "No"}
-                    </span>
-                  </td>
+                  <td>{badgeActivo(u.activo)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </div>
+      </section>
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:px-2">
-        <p className="text-center text-xs font-bold uppercase tracking-widest text-muted sm:text-left">
+      <div className="shrink-0 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:px-1">
+        <p className="text-center text-[10px] font-bold uppercase tracking-widest text-muted sm:text-left">
           {data ? `Total: ${data.total} usuarios` : ""}
         </p>
-        <div className="flex items-center justify-center gap-4">
+        <div className="flex items-center justify-center gap-2">
           <button
             type="button"
             disabled={page <= 1}
-            className="rounded-xl border border-border bg-white p-3 text-xs font-bold uppercase tracking-widest text-primary shadow-sm transition-all hover:border-muted/50 disabled:opacity-50"
+            className="rounded-lg border border-border bg-white px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-widest text-primary shadow-sm transition-all hover:border-muted/50 disabled:opacity-50"
             onClick={() => setPage((p) => Math.max(1, p - 1))}
           >
             Ant
           </button>
-          <span className="min-w-[2rem] text-center text-sm font-black text-primary">{page}</span>
+          <span className="min-w-[1.5rem] text-center text-xs font-black text-primary">{page}</span>
           <button
             type="button"
             disabled={!data || page * data.size >= data.total}
-            className="rounded-xl border border-border bg-white p-3 text-xs font-bold uppercase tracking-widest text-primary shadow-sm transition-all hover:border-muted/50 disabled:opacity-50"
+            className="rounded-lg border border-border bg-white px-2.5 py-1.5 text-[10px] font-bold uppercase tracking-widest text-primary shadow-sm transition-all hover:border-muted/50 disabled:opacity-50"
             onClick={() => setPage((p) => p + 1)}
           >
             Sig

@@ -1,13 +1,16 @@
-"""Groq genera un prompt de imagen; la URL apunta a un servicio text-to-image público.
+"""Groq genera un prompt de imagen; Pollinations renderiza una vez y el servidor cachea el archivo.
 
-Groq no expone generación de píxeles: solo LLM. El flujo alinea el estilo con el catálogo demo
-(fotografía gastronómica oscura / premium) y devuelve una URL usable en `imagen_url`.
+Groq no expone generación de píxeles: solo LLM. Tras obtener la URL de Pollinations, el backend
+descarga los bytes **una sola vez** (BackgroundTasks) y guarda en `data/producto_imagenes/`, servido
+vía `/static/productos/...`. Así el catálogo no vuelve a golpear Pollinations en cada visita; si la
+descarga falla, se guarda la URL remota como antes (fallback).
 """
 
 from __future__ import annotations
 
 import logging
 import re
+from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
@@ -17,6 +20,18 @@ logger = logging.getLogger(__name__)
 
 GROQ_CHAT_URL = "https://api.groq.com/openai/v1/chat/completions"
 POLLINATIONS_BASE = "https://image.pollinations.ai/prompt"
+
+# Resolución moderada: menos peso que 768² y suficiente para cards del catálogo.
+_POLLINATIONS_W = 512
+_POLLINATIONS_H = 512
+
+
+def _backend_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def producto_imagenes_dir() -> Path:
+    return _backend_root() / "data" / "producto_imagenes"
 
 _SYSTEM_PROMPT = (
     "You output exactly one English line: a concise text-to-image prompt for ONE gourmet dish. "
@@ -116,13 +131,68 @@ def groq_generar_prompt_imagen(*, api_key: str, model: str, nombre: str, descrip
 
 
 def pollinations_url_desde_prompt(prompt: str) -> str:
-    """URL que el navegador puede usar como `src` de `<img>` (generación on-the-fly)."""
+    """URL de Pollinations para **una** descarga en servidor (luego se sirve local)."""
     p = " ".join(prompt.split())
     if len(p) > 900:
         p = p[:900]
     # Parámetros fijos mejoran caché y compatibilidad; nologo evita marca en la imagen.
-    q = "width=768&height=768&nologo=true"
+    q = f"width={_POLLINATIONS_W}&height={_POLLINATIONS_H}&nologo=true"
     return f"{POLLINATIONS_BASE}/{quote(p, safe='')}?{q}"
+
+
+def materializar_imagen_producto(*, url_remota: str, producto_id: int, public_base_url: str) -> str:
+    """Descarga la imagen una vez y devuelve URL bajo esta API; si falla, `url_remota`."""
+    base = public_base_url.strip().rstrip("/")
+    if not base:
+        return url_remota
+    dest_dir = producto_imagenes_dir()
+    try:
+        dest_dir.mkdir(parents=True, exist_ok=True)
+    except OSError:
+        logger.warning("imagen materialize: no se pudo crear %s", dest_dir)
+        return url_remota
+
+    timeout = httpx.Timeout(120.0, connect=20.0)
+    last_error: str | None = None
+    for attempt in range(2):
+        try:
+            with httpx.Client(timeout=timeout) as client:
+                r = client.get(url_remota, follow_redirects=True)
+                r.raise_for_status()
+                data = r.content
+            if len(data) < 256:
+                last_error = f"cuerpo demasiado corto ({len(data)} bytes)"
+                continue
+            ct = (r.headers.get("content-type") or "").split(";")[0].strip().lower()
+            if "png" in ct:
+                ext = ".png"
+            elif "webp" in ct:
+                ext = ".webp"
+            elif "jpeg" in ct or "jpg" in ct:
+                ext = ".jpg"
+            else:
+                ext = ".jpg"
+            fname = f"{producto_id}{ext}"
+            path = dest_dir / fname
+            for old in dest_dir.glob(f"{producto_id}.*"):
+                try:
+                    if old != path:
+                        old.unlink()
+                except OSError:
+                    pass
+            path.write_bytes(data)
+            return f"{base}/static/productos/{fname}"
+        except Exception as e:
+            last_error = str(e)
+            logger.warning(
+                "imagen materialize intento %s/%s producto_id=%s: %s",
+                attempt + 1,
+                2,
+                producto_id,
+                last_error,
+            )
+    logger.warning("imagen materialize: usando URL remota (fallback) producto_id=%s", producto_id)
+    return url_remota
 
 
 def construir_imagen_url_opcional(
@@ -153,14 +223,19 @@ def aplicar_imagen_groq_post_creacion(producto_id: int, nombre: str, descripcion
 
     if not settings.producto_imagen_auto or not settings.groq_api_key.strip():
         return
-    url = construir_imagen_url_opcional(
+    url_remota = construir_imagen_url_opcional(
         api_key=settings.groq_api_key,
         model=settings.groq_model,
         nombre=nombre,
         descripcion=descripcion,
     )
-    if not url:
+    if not url_remota:
         return
+    url = materializar_imagen_producto(
+        url_remota=url_remota,
+        producto_id=producto_id,
+        public_base_url=settings.public_app_url,
+    )
     from app.core.db import get_engine
     from sqlmodel import Session
 

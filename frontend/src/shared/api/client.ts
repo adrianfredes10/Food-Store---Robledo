@@ -6,7 +6,7 @@ import { useAuthStore } from "@/shared/store/auth-store";
  * - Sin variable: `/api` → Vite reescribe a `/api/v1` en el backend (spec v5).
  * - URL absoluta: origen del backend; si termina en `/api` o `/api/v1` se normaliza.
  */
-function resolveApiBase(): string {
+export function resolveApiBase(): string {
   // Compose / Docker: forzar mismo origen + proxy aunque exista `.env` local con 127.0.0.1:8008.
   if (import.meta.env.VITE_DOCKER_COMPOSE === "1") return "/api";
   const raw =

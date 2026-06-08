@@ -150,3 +150,48 @@ class PedidoRepository(BaseRepository[Pedido]):
             .order_by(col(HistorialEstadoPedido.registrado_en).asc(), col(HistorialEstadoPedido.id).asc())
         )
         return list(self._session.exec(stmt).all())
+
+    def listar_para_cocina(self) -> list[tuple[Pedido, datetime]]:
+        """Pedidos CONFIRMADO, EN_PREP y EN_CAMINO ordenados por entrada a cocina (historial CONFIRMADO)."""
+        estados_cocina = (EstadoPedido.CONFIRMADO, EstadoPedido.EN_PREP, EstadoPedido.EN_CAMINO)
+        subq = (
+            select(
+                HistorialEstadoPedido.pedido_id,
+                func.min(HistorialEstadoPedido.registrado_en).label("confirmado_en"),
+            )
+            .where(HistorialEstadoPedido.estado_nuevo == EstadoPedido.CONFIRMADO.value)
+            .group_by(HistorialEstadoPedido.pedido_id)
+            .subquery()
+        )
+        stmt = (
+            select(Pedido, subq.c.confirmado_en)
+            .join(subq, subq.c.pedido_id == Pedido.id)
+            .where(col(Pedido.estado).in_(estados_cocina))
+            .options(selectinload(Pedido.detalles))
+            .order_by(subq.c.confirmado_en.asc(), col(Pedido.id).asc())
+        )
+        rows = self._session.exec(stmt).all()
+        return [(row[0], row[1]) for row in rows if row[1] is not None]
+
+    def get_para_cocina(self, pedido_id: int) -> tuple[Pedido, datetime] | None:
+        """Pedido con detalles y timestamp de entrada a cocina (historial CONFIRMADO)."""
+        subq = (
+            select(
+                HistorialEstadoPedido.pedido_id,
+                func.min(HistorialEstadoPedido.registrado_en).label("confirmado_en"),
+            )
+            .where(HistorialEstadoPedido.pedido_id == pedido_id)
+            .where(HistorialEstadoPedido.estado_nuevo == EstadoPedido.CONFIRMADO.value)
+            .group_by(HistorialEstadoPedido.pedido_id)
+            .subquery()
+        )
+        stmt = (
+            select(Pedido, subq.c.confirmado_en)
+            .join(subq, subq.c.pedido_id == Pedido.id)
+            .where(Pedido.id == pedido_id)
+            .options(selectinload(Pedido.detalles))
+        )
+        row = self._session.exec(stmt).first()
+        if row is None or row[1] is None:
+            return None
+        return (row[0], row[1])

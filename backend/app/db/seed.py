@@ -20,6 +20,7 @@ def seed_roles(session: Session) -> None:
         Rol(codigo="ADMIN", nombre="Administrador", descripcion="Acceso total al sistema"),
         Rol(codigo="STOCK", nombre="Gestor de Stock", descripcion="Gestión de productos y existencias"),
         Rol(codigo="PEDIDOS", nombre="Gestor de Pedidos", descripcion="Seguimiento y cambio de estados de pedidos"),
+        Rol(codigo="COCINA", nombre="Cocina", descripcion="Display de cocina (KDS) y avance de preparación"),
         Rol(codigo="CLIENT", nombre="Cliente", descripcion="Usuario final que realiza pedidos"),
     ]
     for r in roles:
@@ -81,6 +82,28 @@ def seed_admin(session: Session) -> None:
         logger.info("Rol ADMIN asignado al usuario admin.")
 
 
+def seed_cocina(session: Session) -> None:
+    email = "cocina@foodstore.com"
+    stmt = select(Usuario).where(Usuario.email == email)
+    cocina = session.exec(stmt).first()
+
+    if not cocina:
+        cocina = Usuario(
+            email=email,
+            hashed_password=hash_password("Cocina1234!"),
+            nombre="Cocina",
+            apellido="FoodStore",
+            activo=True,
+        )
+        session.add(cocina)
+        session.flush()
+        logger.info(f"Usuario cocina {email} creado.")
+
+        vinculo = UsuarioRol(usuario_id=cocina.id, rol_codigo="COCINA")
+        session.add(vinculo)
+        logger.info("Rol COCINA asignado al usuario cocina.")
+
+
 def run_seed() -> None:
     engine = get_engine()
     with Session(engine) as session:
@@ -88,6 +111,7 @@ def run_seed() -> None:
         seed_estados_pedido(session)
         seed_formapago(session)
         seed_admin(session)
+        seed_cocina(session)
         session.commit()
         logger.info("Seeding completado exitosamente.")
 

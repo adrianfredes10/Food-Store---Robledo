@@ -1,7 +1,9 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy import text
@@ -11,6 +13,7 @@ from app.core.db import get_engine
 from app.core.db.bootstrap import bootstrap_database
 from app.core.rate_limit import limiter
 from app.modules.admin.router import router as admin_router
+from app.modules.cocina.router import router as cocina_router
 from app.modules.auth.router import router as auth_router
 from app.modules.direcciones_entrega.router import router as direcciones_router
 from app.modules.pagos.router import router as pagos_router
@@ -22,6 +25,9 @@ from app.modules.mesas.router_cliente import router as mesas_cliente_router
 from app.modules.productos.router import router as productos_router
 
 API_V1_PREFIX = "/api/v1"
+
+# Imágenes materializadas post-Groq/Pollinations (`/static/productos/{id}.jpg`…).
+_STATIC_PRODUCTOS_DIR = Path(__file__).resolve().parent.parent / "data" / "producto_imagenes"
 
 
 @asynccontextmanager
@@ -52,6 +58,7 @@ def create_app() -> FastAPI:
 
     application.include_router(auth_router, prefix=API_V1_PREFIX)
     application.include_router(admin_router, prefix=API_V1_PREFIX)
+    application.include_router(cocina_router, prefix=API_V1_PREFIX)
     application.include_router(mesas_admin_router, prefix=API_V1_PREFIX)
     application.include_router(mesas_cliente_router, prefix=API_V1_PREFIX)
     application.include_router(direcciones_router, prefix=API_V1_PREFIX)
@@ -60,6 +67,13 @@ def create_app() -> FastAPI:
     application.include_router(productos_router, prefix=API_V1_PREFIX)
     application.include_router(categorias_router, prefix=API_V1_PREFIX)
     application.include_router(ingredientes_router, prefix=API_V1_PREFIX)
+
+    _STATIC_PRODUCTOS_DIR.mkdir(parents=True, exist_ok=True)
+    application.mount(
+        "/static/productos",
+        StaticFiles(directory=str(_STATIC_PRODUCTOS_DIR)),
+        name="static_productos",
+    )
 
     @application.get("/health", tags=["health"])
     def health() -> dict[str, str | bool]:

@@ -30,6 +30,18 @@ class TransicionPedidoInvalidaError(ErrorDominioPedido):
         self.solicitado = solicitado
 
 
+class TransicionPedidoNoAutorizadaError(ErrorDominioPedido):
+    """El actor no tiene permiso para esta transición (RN-CO03 u otras reglas por rol)."""
+
+    def __init__(self, pedido_id: int, actual: EstadoPedido, solicitado: EstadoPedido) -> None:
+        super().__init__(
+            f"Transición no autorizada para pedido {pedido_id}: {actual.value} → {solicitado.value}",
+        )
+        self.pedido_id = pedido_id
+        self.actual = actual
+        self.solicitado = solicitado
+
+
 class MotivoCancelacionRequeridoError(ErrorDominioPedido):
     def __init__(self, pedido_id: int) -> None:
         super().__init__(f"Cancelar pedido {pedido_id} requiere motivo")

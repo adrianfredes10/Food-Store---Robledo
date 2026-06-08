@@ -59,6 +59,9 @@ def client(engine) -> Generator[TestClient, None, None]:
                 raise
             else:
                 uow.commit()
+                from app.modules.cocina.emit import emit_cocina_events_after_commit
+
+                emit_cocina_events_after_commit(uow.drain_cocina_events())
 
     app.dependency_overrides[get_uow] = override_uow
     with TestClient(app) as c:

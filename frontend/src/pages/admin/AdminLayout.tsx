@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NavLink, Navigate, Outlet, Link } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -12,6 +12,7 @@ import {
   Users,
   Table2,
   Eye,
+  User,
 } from "lucide-react";
 
 import { LOGOUT_CONFIRM_MESSAGE } from "@/shared/lib/confirm-logout";
@@ -24,7 +25,7 @@ const NAV_ITEMS = [
   { label: "Productos", to: "/admin/productos", icon: ShoppingBag },
   { label: "Categorías", to: "/admin/categorias", icon: Tag },
   { label: "Ingredientes", to: "/admin/ingredientes", icon: Leaf },
-  { label: "Mesas y reservas", to: "/admin/mesas", icon: Table2 },
+  { label: "Mesas", to: "/admin/mesas", icon: Table2 },
   { label: "Usuarios", to: "/admin/usuarios", icon: Users },
   { label: "Pedidos", to: "/admin/pedidos", icon: ClipboardList },
 ] as const;
@@ -33,10 +34,23 @@ export function AdminLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [logoutConfirmOpen, setLogoutConfirmOpen] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   const hydrated = useAuthHydrated();
   const token = useAuthStore((s) => s.access_token);
   const { data: me, isLoading } = useMe();
+
+  useEffect(() => {
+    if (!userMenuOpen) return;
+    const onPointerDown = (event: MouseEvent) => {
+      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => document.removeEventListener("pointerdown", onPointerDown);
+  }, [userMenuOpen]);
 
   if (!hydrated || isLoading) {
     return (
@@ -70,7 +84,7 @@ export function AdminLayout() {
   }
 
   return (
-    <div className="flex min-h-screen max-md:overflow-x-clip bg-admin-shell md:overflow-x-visible">
+    <div className="flex h-screen overflow-hidden bg-admin-shell">
       {sidebarOpen && (
         <div
           className="fixed inset-0 z-20 bg-admin-overlay md:hidden"
@@ -82,20 +96,20 @@ export function AdminLayout() {
         className={`
       admin-sidebar z-30 flex min-h-0 flex-col transition-all duration-300
       fixed inset-y-0 left-0 md:sticky md:top-0 md:h-screen md:max-h-screen
-      ${collapsed ? "w-16" : "w-56"}
+      ${collapsed ? "w-14" : "w-44"}
       ${sidebarOpen ? "translate-x-0" : "-translate-x-full md:translate-x-0"}
     `}
       >
-        <div className="flex items-center gap-3 px-4 py-5 border-b border-admin-sidebar-border">
-          <span className="text-admin-sidebar-brand text-xl font-black">FS</span>
+        <div className="flex shrink-0 items-center gap-2 border-b border-admin-sidebar-border px-3 py-3">
+          <span className="text-admin-sidebar-brand text-xl font-black leading-none">FS</span>
           {!collapsed && (
-            <span className="text-sm font-bold uppercase tracking-widest text-admin-sidebar-fg">
+            <span className="text-xs font-bold uppercase tracking-widest text-admin-sidebar-fg">
               Admin
             </span>
           )}
         </div>
 
-        <nav className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain py-4 space-y-1 px-2">
+        <nav className="flex-1 min-h-0 space-y-0.5 overflow-y-auto overscroll-y-contain px-1.5 py-2">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             return (
@@ -104,9 +118,9 @@ export function AdminLayout() {
                 to={item.to}
                 end={"end" in item && item.end === true}
                 onClick={() => setSidebarOpen(false)}
+                title={item.label}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 px-3 py-2.5 rounded-xl text-xs font-bold uppercase tracking-widest
-             transition-all duration-150
+                  `flex items-center gap-2 rounded-lg px-2 py-1.5 text-[10px] font-bold uppercase tracking-wide transition-all duration-150
              ${
                isActive
                  ? "bg-admin-sidebar-highlight text-admin-sidebar-fg"
@@ -114,68 +128,107 @@ export function AdminLayout() {
              }`
                 }
               >
-                <Icon size={18} className="shrink-0" />
-                {!collapsed && <span>{item.label}</span>}
+                <Icon size={15} className="shrink-0" strokeWidth={2.25} />
+                {!collapsed && <span className="min-w-0 truncate">{item.label}</span>}
               </NavLink>
             );
           })}
         </nav>
 
-        <div className="hidden md:flex px-2 pb-4">
-          <button
-            type="button"
-            onClick={() => setCollapsed((c) => !c)}
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-xl
-                   text-admin-sidebar-muted hover:text-admin-sidebar-fg hover:bg-admin-sidebar-subtle transition-colors text-xs"
-            aria-label={collapsed ? "Expandir menú" : "Colapsar menú"}
-          >
-            <PanelLeftClose size={16} className={collapsed ? "rotate-180" : ""} />
-            {!collapsed && <span className="uppercase tracking-widest">Colapsar</span>}
-          </button>
+        <div className="shrink-0 space-y-0.5 border-t border-admin-sidebar-border px-1.5 py-2">
+          <div className="relative" ref={userMenuRef}>
+            <button
+              type="button"
+              onClick={() => setUserMenuOpen((open) => !open)}
+              className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[10px] font-bold uppercase tracking-wide transition-all duration-150 ${
+                userMenuOpen
+                  ? "bg-admin-sidebar-highlight text-admin-sidebar-fg"
+                  : "text-admin-sidebar-muted hover:bg-admin-sidebar-subtle hover:text-admin-sidebar-fg"
+              }`}
+              aria-expanded={userMenuOpen}
+              aria-haspopup="menu"
+              title={me?.nombre ?? "Cuenta"}
+            >
+              <User size={15} className="shrink-0" strokeWidth={2.25} />
+              {!collapsed && (
+                <span className="min-w-0 flex-1 truncate text-left normal-case">{me?.nombre ?? "Admin"}</span>
+              )}
+            </button>
+
+            {userMenuOpen ? (
+              <div
+                role="menu"
+                className={`absolute z-50 overflow-hidden rounded-xl border border-admin-sidebar-border bg-admin-sidebar shadow-xl fade-in ${
+                  collapsed
+                    ? "left-full bottom-0 ml-2 w-52"
+                    : "bottom-full left-0 mb-2 w-full min-w-[12rem]"
+                }`}
+              >
+                {me?.nombre && !collapsed ? (
+                  <div className="border-b border-admin-sidebar-border px-3 py-2">
+                    <p className="text-[9px] font-bold uppercase tracking-widest text-admin-sidebar-muted">Sesión</p>
+                    <p className="truncate text-xs font-bold text-admin-sidebar-fg">{me.nombre}</p>
+                  </div>
+                ) : null}
+
+                <div className="p-1.5">
+                  <Link
+                    to="/"
+                    role="menuitem"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      setSidebarOpen(false);
+                    }}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[10px] font-bold uppercase tracking-widest text-admin-sidebar-fg transition-colors hover:bg-admin-sidebar-subtle"
+                  >
+                    <Eye size={16} className="shrink-0" />
+                    <span>Vista previa catálogo</span>
+                  </Link>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setUserMenuOpen(false);
+                      setSidebarOpen(false);
+                      setLogoutConfirmOpen(true);
+                    }}
+                    className="mt-0.5 flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[10px] font-bold uppercase tracking-widest text-danger transition-colors hover:bg-danger/10"
+                  >
+                    <LogOut size={16} className="shrink-0" />
+                    <span>Cerrar sesión</span>
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
+
+          <div className="hidden md:block">
+            <button
+              type="button"
+              onClick={() => setCollapsed((c) => !c)}
+              className="flex w-full items-center justify-center gap-1.5 rounded-lg py-1.5 text-[10px] text-admin-sidebar-muted transition-colors hover:bg-admin-sidebar-subtle hover:text-admin-sidebar-fg"
+              aria-label={collapsed ? "Expandir menú" : "Ocultar menú"}
+            >
+              <PanelLeftClose size={14} className={collapsed ? "rotate-180" : ""} />
+              {!collapsed && <span className="uppercase tracking-wide">Ocultar</span>}
+            </button>
+          </div>
         </div>
       </aside>
 
-      <div className="flex-1 flex flex-col min-w-0">
-        <header className="admin-topbar sticky top-0 z-10 flex items-center gap-3 px-4 py-3">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
+        <header className="admin-topbar sticky top-0 z-10 flex shrink-0 items-center gap-3 px-4 py-3 md:hidden">
           <button
             type="button"
-            className="md:hidden shrink-0 p-2 rounded-lg text-muted hover:text-primary hover:bg-bg-secondary/80 transition-colors"
+            className="shrink-0 rounded-lg p-2 text-muted transition-colors hover:bg-bg-secondary/80 hover:text-primary"
             onClick={() => setSidebarOpen(true)}
             aria-label="Abrir menú"
           >
             <Menu size={20} />
           </button>
-
-          <div className="flex min-w-0 flex-1 flex-col items-stretch justify-center md:items-center" />
-
-          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-            <Link
-              to="/"
-              className="flex items-center gap-2 rounded-xl border border-border/80 bg-white/50 px-2.5 py-2 text-[10px] font-bold uppercase tracking-widest text-primary transition-colors hover:border-accent/40 hover:bg-accent/5 sm:px-3 sm:text-xs"
-            >
-              <Eye size={16} className="shrink-0" />
-              <span className="hidden sm:inline">Vista previa catálogo</span>
-              <span className="sm:hidden">Catálogo</span>
-            </Link>
-            {me?.nombre && (
-              <span className="hidden sm:block text-xs font-bold text-muted uppercase tracking-widest">
-                {me.nombre}
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={() => setLogoutConfirmOpen(true)}
-              className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border/80 bg-white/50
-                     text-xs font-bold uppercase tracking-widest text-danger
-                     hover:bg-danger/10 hover:border-danger/30 transition-colors"
-            >
-              <LogOut size={14} />
-              <span className="hidden sm:inline">Salir</span>
-            </button>
-          </div>
         </header>
 
-        <main className="flex-1 min-w-0 max-w-full max-md:overflow-x-clip px-2 py-4 md:p-8 fade-in md:overflow-x-visible">
+        <main className="flex-1 min-h-0 min-w-0 flex flex-col overflow-hidden p-2 max-md:py-4 md:p-4 fade-in">
           <Outlet />
         </main>
       </div>

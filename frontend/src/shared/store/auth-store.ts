@@ -23,7 +23,7 @@ type AuthState = {
 // guardo el token en localStorage para que no se pierda al recargar
 export const useAuthStore = create<AuthState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       access_token: null,
       refresh_token: null,
       user: null,
@@ -31,8 +31,13 @@ export const useAuthStore = create<AuthState>()(
       setTokens: (access, refresh) =>
         set({ access_token: access, refresh_token: refresh, isAuthenticated: !!access }),
       setUser: (user) => set({ user }),
-      logout: () =>
-        set({ access_token: null, refresh_token: null, user: null, isAuthenticated: false }),
+      logout: () => {
+        const hadSession = Boolean(get().access_token);
+        set({ access_token: null, refresh_token: null, user: null, isAuthenticated: false });
+        if (hadSession && typeof window !== "undefined") {
+          window.location.replace("/");
+        }
+      },
     }),
     {
       name: "foodstore-auth",
