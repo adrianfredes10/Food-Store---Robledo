@@ -1,20 +1,22 @@
 # Mapa de Changes — FoodStore
 
+**Metodología:** [SDD.md](SDD.md) · **Skills por change:** [SKILLS_REGISTRY.md](SKILLS_REGISTRY.md)
+
 ## Orden de implementación
 
-| Change | Funcionalidad | Historias | Depende de |
-|--------|--------------|-----------|------------|
-| us-000-setup | Setup inicial y arquitectura base | Todas | — |
-| us-001-auth | Login, registro, JWT, refresh token | US-001 | us-000-setup |
-| us-002-catalogo | Categorías, Ingredientes, Productos | US-002, US-007 | us-001-auth |
-| us-003-carrito | Carrito con personalización | US-003 | us-002-catalogo |
-| us-004-pedidos | Crear pedido, FSM de estados | US-004, US-006, US-008 | us-003-carrito |
-| us-005-pagos | MercadoPago, webhook, confirmación | US-005 | us-004-pedidos |
-| us-006-direcciones | CRUD direcciones, marcar principal | US-009 | us-001-auth |
-| us-007-admin | Panel admin completo | US-007, US-008 | us-002-catalogo |
-| incremental-2026-mesas-docker | Mesas (catálogo + salón), retiro en local en pedidos, admin usuarios, stack Docker dev | Extensión US-004/US-007 | us-007-admin |
-| incremental-2026-display-cocina | KDS `/cocina`, rol COCINA, WebSocket, transiciones cocina en FSM | US-COCINA-01..09 (`docs/feature-display-cocina/`) | us-004-pedidos, us-005-pagos |
-| incremental-2026-ux-checkout-opsx | Stepper checkout, admin layout compacto, comandos/skills OPSX Cursor, Groq imagen | Extensión UX US-003..US-007 | us-007-admin |
+| Change | Funcionalidad | Historias | Depende de | Skills (ver registro) |
+|--------|--------------|-----------|------------|------------------------|
+| us-000-setup | Setup inicial y arquitectura base | Todas | — | pre-registro |
+| us-001-auth | Login, registro, JWT, refresh token | US-001 | us-000-setup | pre-registro |
+| us-002-catalogo | Categorías, Ingredientes, Productos | US-002, US-007 | us-001-auth | pre-registro |
+| us-003-carrito | Carrito con personalización | US-003 | us-002-catalogo | pre-registro |
+| us-004-pedidos | Crear pedido, FSM de estados | US-004, US-006, US-008 | us-003-carrito | pre-registro |
+| us-005-pagos | MercadoPago, webhook, confirmación | US-005 | us-004-pedidos | pre-registro |
+| us-006-direcciones | CRUD direcciones, marcar principal | US-009 | us-001-auth | pre-registro |
+| us-007-admin | Panel admin completo | US-007, US-008 | us-002-catalogo | pre-registro |
+| incremental-2026-mesas-docker | Mesas (catálogo + salón), retiro en local en pedidos, admin usuarios, stack Docker dev | Extensión US-004/US-007 | us-007-admin | `dashboard-crud-page`, `admin-sidebar-layout`, `openspec-apply-change` |
+| incremental-2026-display-cocina | KDS `/cocina`, rol COCINA, WebSocket, transiciones cocina en FSM | US-COCINA-01..09 (`docs/feature-display-cocina/`) | us-004-pedidos, us-005-pagos | `openspec-explore`, `openspec-propose`, `openspec-apply-change`, `openspec-archive-change`, `admin-sidebar-layout`, `tailwind-design-system` |
+| incremental-2026-ux-checkout-opsx | Stepper checkout, admin layout compacto, comandos/skills OPSX Cursor, Groq imagen | Extensión UX US-003..US-007 | us-007-admin | `openspec-propose`, `openspec-apply-change`, `openspec-archive-change`, `admin-sidebar-layout`, `dashboard-crud-page`, `tailwind-design-system` |
 
 ## Estado actual
 
@@ -71,9 +73,12 @@ Eje **implementación ↔ historias**:
 | incremental-2026-display-cocina | `test_cocina.py` (listado, RBAC, transiciones, eventos WS) |
 | incremental-2026-ux-checkout-opsx | sin tests backend dedicados; verificación `npm run build` + UI manual |
 
-### Tooling Cursor (OPSX)
+### Metodología SDD y tooling Cursor
 
 | Artefacto | Ubicación |
 |-----------|-----------|
-| Comandos | `.cursor/commands/opsx-{explore,propose,apply,archive}.md` |
-| Skills | `.cursor/skills/openspec-{explore,propose,apply-change,archive-change}/` + admin/tailwind |
+| Metodología SDD | [openspec/SDD.md](SDD.md) |
+| Registro de skills | [openspec/SKILLS_REGISTRY.md](SKILLS_REGISTRY.md) |
+| Índice skills | [.cursor/skills/README.md](../.cursor/skills/README.md) |
+| Comandos OPSX | `.cursor/commands/opsx-{explore,propose,apply,archive}.md` |
+| Skills | `.cursor/skills/` (7 skills — ver registro) |

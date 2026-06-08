@@ -8,4 +8,4 @@
 - [x] Comandos `.cursor/commands/opsx-{explore,apply,archive}.md`
 - [x] Skills `.cursor/skills/openspec-{explore,apply-change,archive-change}/`
 - [x] Ajustes Groq imagen + tests
-- [x] Actualizar `openspec/project.md` y `CHANGES_MAP.md`
+- [x] Actualizar `openspec/project.md`, `CHANGES_MAP.md`, `SDD.md` y `SKILLS_REGISTRY.md`

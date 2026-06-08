@@ -9,4 +9,4 @@
 - [x] Frontend: endpoints, hooks, página `/cocina`, redirect login COCINA
 - [x] Proxy Vite WebSocket
 - [x] Feature pack `docs/feature-display-cocina/`
-- [x] Actualizar `openspec/project.md` y `CHANGES_MAP.md`
+- [x] Actualizar `openspec/project.md`, `CHANGES_MAP.md`, `SDD.md` y `SKILLS_REGISTRY.md`

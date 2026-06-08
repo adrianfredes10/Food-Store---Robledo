@@ -27,6 +27,9 @@ Documento **canónico** de contexto para humanos, agentes (Cursor, Antigravity, 
 |------|-----------|
 | `backend/` | Código Python `app/`, Alembic, `pyproject.toml`, tests `tests/`, `.env` local (no commitear) |
 | `frontend/` | SPA: `src/` (páginas, features, shared), `vite.config.ts`, `package.json`, `.env` local |
+| `openspec/SDD.md` | Metodología **SDD v5.0** y ciclo **OPSX** |
+| `openspec/SKILLS_REGISTRY.md` | Skills Cursor usadas por change |
+| `openspec/CHANGES_MAP.md` | Mapa y estado de changes |
 | `openspec/project.md` | **Este archivo** |
 | `README.md` | Puntero de inicio: Docker + `project.md` |
 | `DOCKER.md` | Stack **docker compose** (Postgres, API, Vite) con volúmenes y recarga |
@@ -407,14 +410,15 @@ Integración: preferir **HTTP** contra la app; no mockear UoW/servicios salvo de
 
 ---
 
-## 10. OpenSpec / agentes — checklist rápido
+## 10. OpenSpec / SDD / agentes — checklist rápido
 
-1. Leer **`openspec/project.md`** (este archivo) y **`AGENTS.md`**.
-2. Para instalación local o Docker: **`README.md`** + **`DOCKER.md`**.
+1. Leer **`openspec/SDD.md`** (metodología) y **`openspec/SKILLS_REGISTRY.md`** (skills por change).
+2. Leer **`openspec/project.md`** (este archivo) y **`AGENTS.md`**.
+3. Para instalación local o Docker: **`README.md`** + **`DOCKER.md`**.
 3. No commitear **`.env`** ni claves.
 4. Tras cambiar **`frontend/.env`**, reiniciar **`npm run dev`**.
 5. Mantener este documento al día cuando cambien contratos globales, env vars o flujos críticos.
 
 ---
 
-*Última revisión: KDS cocina (rol COCINA, WS), checkout stepper, OPSX Cursor completo, admin layout compacto; ver `openspec/CHANGES_MAP.md`.*
+*Última revisión: documentación SDD (`openspec/SDD.md`) y registro de skills (`openspec/SKILLS_REGISTRY.md`); ver `openspec/CHANGES_MAP.md`.*

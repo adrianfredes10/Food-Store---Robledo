@@ -10,9 +10,11 @@ Actúa como un Senior Tech Lead y Arquitecto de Software con enfoque en Spec-Dri
 
 Al comenzar **cualquier** conversación o tarea que toque arquitectura, módulos, API, frontend o convenciones del monorepo:
 
-1. Leé `openspec/project.md` — mapa completo del sistema (BD, roles, FSM, API, frontend, variables de entorno, comandos).
-2. Leé `docs/Integrador.txt` — especificación técnica SDD v5.0 completa (ERD, esquemas Pydantic, rúbrica).
-3. Para setup local y Docker: **`README.md`** y **`DOCKER.md`** en la raíz (`openspec/project.md` sigue siendo la referencia técnica canónica).
+1. Leé **`openspec/SDD.md`** — metodología SDD y ciclo OPSX del proyecto.
+2. Leé **`openspec/project.md`** — mapa completo del sistema (BD, roles, FSM, API, frontend, variables de entorno, comandos).
+3. Leé **`openspec/CHANGES_MAP.md`** y **`openspec/SKILLS_REGISTRY.md`** — changes activos/archivados y skills a usar por contexto.
+4. Leé **`docs/Integrador.txt`** — especificación técnica SDD v5.0 completa (ERD, esquemas Pydantic, rúbrica).
+5. Para setup local y Docker: **`README.md`** y **`DOCKER.md`** en la raíz.
 
 ---
 
@@ -193,8 +195,11 @@ El agente coordina el desarrollo leyendo los documentos en **`docs/`** como fuen
 | `docs/Descripcion.txt` | Visión general del sistema (15 secciones) |
 | `docs/Historias_de_usuario.txt` | Historias de usuario por actor |
 | `docs/Integrador.txt` | Especificación técnica SDD v5.0 completa — ERD v5, FSM de pedidos, API REST, schemas Pydantic, rúbrica |
+| `openspec/SDD.md` | Metodología SDD v5.0 y flujo OPSX (explore → propose → apply → archive) |
 | `openspec/project.md` | Contexto canónico del sistema (siempre leerlo al iniciar) |
 | `openspec/CHANGES_MAP.md` | Mapa de changes planificados y archivados |
+| `openspec/SKILLS_REGISTRY.md` | Skills Cursor usadas por change (trazabilidad SDD) |
+| `.cursor/skills/README.md` | Índice de skills instaladas en el proyecto |
 
 ---
 

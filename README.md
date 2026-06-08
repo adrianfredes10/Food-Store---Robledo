@@ -2,10 +2,16 @@
 
 Monorepo **backend/** (FastAPI, SQLModel, Alembic) + **frontend/** (React, Vite, TypeScript).
 
+**Metodología:** [Spec-Driven Development (SDD) v5.0](openspec/SDD.md) · flujo [OPSX](openspec/SDD.md#2-ciclo-opsx) · skills registradas en [openspec/SKILLS_REGISTRY.md](openspec/SKILLS_REGISTRY.md).
+
 | Documento | Uso |
 |-----------|-----|
+| [openspec/SDD.md](openspec/SDD.md) | **Metodología SDD** — ciclo explore → propose → apply → archive |
+| [openspec/SKILLS_REGISTRY.md](openspec/SKILLS_REGISTRY.md) | **Skills Cursor** usadas por change |
+| [openspec/CHANGES_MAP.md](openspec/CHANGES_MAP.md) | Mapa de changes (orden, estado, verificación) |
 | [openspec/project.md](openspec/project.md) | Contexto canónico (API, dominio, env, tests) |
 | [AGENTS.md](AGENTS.md) | Convenciones y flujo OpenSpec para agentes |
+| [.cursor/skills/README.md](.cursor/skills/README.md) | Índice de skills del proyecto |
 | [DOCKER.md](DOCKER.md) | Levantar Postgres + API + Vite con Docker |
 | [docs/Integrador.txt](docs/Integrador.txt) | Especificación técnica SDD (resumen) |
 | [docs/Historias_de_usuario.txt](docs/Historias_de_usuario.txt) | Historias y criterios |
