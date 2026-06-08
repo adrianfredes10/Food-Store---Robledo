@@ -48,7 +48,7 @@ frontend/*.local
 
 .cursorrules
 .cursorignore
-SDD.md
+/SDD.md
 CLAUDE.md
 GEMINI.md
 copilot-instructions.md
